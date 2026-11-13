@@ -1,0 +1,118 @@
+version: '3.8'
+
+services:
+  # ============================================================================
+  # 1. BASE DE DONNÉES POSTGRESQL (8 bases isolées via script d'init)
+  # ============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: tsh-postgres
+    environment:
+      POSTGRES_USER: tsh_admin
+      POSTGRES_PASSWORD: tsh_password
+      POSTGRES_DB: tsh_default
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tsh_admin -d tsh_default"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tsh-network
+
+  # ============================================================================
+  # 2. APACHE KAFKA (Mode KRaft - pas besoin de ZooKeeper)
+  # ============================================================================
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: tsh-kafka
+    ports:
+      - "9092:9092"
+      - "9094:9094"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,PLAINTEXT_HOST://0.0.0.0:9092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - tsh-network
+
+  # ============================================================================
+  # 3. REDIS (Cache, Sessions WebSocket & OTP avec TTL 5 min)
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: tsh-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - tsh-network
+
+  # ============================================================================
+  # 4. MINIO (Stockage objet compatible S3 pour photos et PDF)
+  # ============================================================================
+  minio:
+    image: minio/minio:latest
+    container_name: tsh-minio
+    ports:
+      - "9000:9000"   # API S3
+      - "9001:9001"   # Console Web UI
+    environment:
+      MINIO_ROOT_USER: minio_admin
+      MINIO_ROOT_PASSWORD: minio_password
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - tsh-network
+
+  # ============================================================================
+  # 5. KEYCLOAK (IAM - Authentification OIDC / JWT)
+  # ============================================================================
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.0
+    container_name: tsh-keycloak
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/tsh_users
+      KC_DB_USERNAME: tsh_admin
+      KC_DB_PASSWORD: tsh_password
+    ports:
+      - "8085:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - tsh-network
+
+volumes:
+  postgres_data:
+  kafka_data:
+  redis_data:
+  minio_data:
+
+networks:
+  tsh-network:
+    driver: bridge

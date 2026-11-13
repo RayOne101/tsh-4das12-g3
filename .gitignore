@@ -47,6 +47,7 @@ _dtest/
 /regenerate_tsh_diagrams.py
 /update_cahier_charges.py
 /build_clean_cahier_charges.py
+/generate_final_diagrams.py
 /diagrams/
 /TSH_Cahier_des_Charges/
 /Rendu validation intermédiaire*.pdf

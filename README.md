@@ -31,7 +31,8 @@ tsh/
 │   ├── Diagrams/
 │   │   ├── architecture-logique.png
 │   │   ├── architecture-physique.png
-│   │   └── diagramme-classes.png
+│   │   ├── diagramme-classes.png
+│   │   └── class-01-utilisateurs.png ... class-08-moving.png (diagrammes par microservice)
 │   ├── TSH_Cahier_des_charges.docx
 │   └── TSH_Cahier_des_charges.pdf
 ├── .gitignore

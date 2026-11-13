@@ -1,0 +1,52 @@
+# --- Java / Maven ---
+target/
+build/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.properties
+
+# --- Node / front-end ---
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Environnement & secrets ---
+.env
+.env.local
+*.local
+application-secret.yml
+
+# --- IDE ---
+.idea/
+*.iml
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- Données locales (volumes Docker, dumps) ---
+data/
+*.sql.gz
+
+# --- Divers ---
+*.log
+__pycache__/
+*.pyc
+~$*
+_dtest/
+
+# --- Scripts et fichiers de travail locaux (hors dépôt officiel) ---
+/Architecture*.png
+/TSH Diagramme*.png
+/build_tsh_doc.py
+/regenerate_tsh_diagrams.py
+/diagrams/
+/TSH_Cahier_des_Charges/
+/Rendu validation intermédiaire*.pdf
+/Rendu_validation_s4_extracted.txt
+

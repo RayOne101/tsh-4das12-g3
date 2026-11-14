@@ -1,4 +1,4 @@
-﻿package tn.esprit.tsh.mscommunication;
+package tn.esprit.tsh.mscommunication;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

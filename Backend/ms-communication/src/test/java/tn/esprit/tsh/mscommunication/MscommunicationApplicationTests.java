@@ -1,4 +1,4 @@
-﻿package tn.esprit.tsh.mscommunication;
+package tn.esprit.tsh.mscommunication;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

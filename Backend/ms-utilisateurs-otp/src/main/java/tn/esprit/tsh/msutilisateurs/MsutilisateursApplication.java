@@ -1,4 +1,4 @@
-﻿package tn.esprit.tsh.msutilisateurs;
+package tn.esprit.tsh.msutilisateurs;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

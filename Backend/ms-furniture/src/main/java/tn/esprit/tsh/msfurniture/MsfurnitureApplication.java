@@ -1,4 +1,4 @@
-﻿package tn.esprit.tsh.msfurniture;
+package tn.esprit.tsh.msfurniture;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

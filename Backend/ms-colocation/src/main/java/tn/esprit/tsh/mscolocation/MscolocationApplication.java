@@ -1,4 +1,4 @@
-﻿package tn.esprit.tsh.mscolocation;
+package tn.esprit.tsh.mscolocation;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

@@ -1,4 +1,4 @@
-﻿package tn.esprit.tsh.mscontrats;
+package tn.esprit.tsh.mscontrats;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

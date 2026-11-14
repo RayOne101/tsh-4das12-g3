@@ -1,4 +1,4 @@
-﻿package tn.esprit.tsh.msmoving;
+package tn.esprit.tsh.msmoving;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

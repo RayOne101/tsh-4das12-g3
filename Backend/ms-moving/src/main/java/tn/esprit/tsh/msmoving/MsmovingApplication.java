@@ -1,4 +1,4 @@
-﻿package tn.esprit.tsh.msmoving;
+package tn.esprit.tsh.msmoving;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

@@ -18,14 +18,14 @@ Plateforme web communautaire pour étudiants en Tunisie : recherche de logements
 tsh/
 ├── Backend/
 │   ├── infrastructure/           # API Gateway, Eureka, Keycloak
-│   ├── ms-utilisateurs-otp/      # Inscription, rôles, vérification OTP SMS
-│   ├── ms-logements/             # Annonces logements, recherche, favoris
-│   ├── ms-colocation/            # Annonces colocation, matching Data Science
-│   ├── ms-contrats-paiements/    # Contrats PDF, paiements et reçus
-│   ├── ms-communication/         # Messagerie temps réel WebSocket & alertes Kafka
-│   ├── ms-avis-reclamations/     # Avis, notations et réclamations
-│   ├── ms-furniture/             # Marketplace de meubles d'occasion
-│   └── ms-moving/                # Déménagement et transport
+│   ├── User/                     # Inscription, rôles, vérification OTP SMS
+│   ├── Housing/                  # Annonces logements, recherche, favoris
+│   ├── Colocation/               # Annonces colocation, matching Data Science
+│   ├── Contract/                 # Contrats PDF, paiements et reçus
+│   ├── Communication/            # Messagerie temps réel WebSocket & alertes Kafka
+│   ├── Review/                   # Avis, notations et réclamations
+│   ├── Marketplace/              # Marketplace de meubles d'occasion
+│   └── Transport/                # Déménagement et transport
 ├── Frontend/                     # Application web cliente React
 ├── Documentation/
 │   ├── Diagrams/

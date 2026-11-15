@@ -1,0 +1,32 @@
+### 1. Test via Gateway: Lister tous les utilisateurs (GET /api/utilisateurs)
+# Envoyé sur le port 8080 (Gateway) -> routé automatiquement vers User (port 8081)
+GET http://localhost:8083/api/utilisateurs
+
+###
+
+### 2. Test via Gateway: Inscription d'un utilisateur (POST /api/utilisateurs)
+POST http://localhost:8083/api/utilisateurs
+Content-Type: application/json
+
+{
+  "nom": "Kais Ben Amor",
+  "email": "kais.benamor@esprit.tn",
+  "telephone": "21622334455"
+}
+
+###
+
+### 3. Test via Gateway: Vérifier OTP (POST /api/utilisateurs/verifier-otp)
+# Utilisez le code affiché dans la console du microservice User
+POST http://localhost:8083/api/utilisateurs/verifier-otp
+Content-Type: application/json
+
+{
+  "telephone": "21622334455",
+  "code": "123456"
+}
+
+###
+
+### 4. Test via Gateway: Profil utilisateur (GET /api/utilisateurs/me)
+GET http://localhost:8083/api/utilisateurs/me?telephone=21622334455

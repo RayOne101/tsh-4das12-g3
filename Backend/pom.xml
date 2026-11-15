@@ -12,6 +12,7 @@
 
     <modules>
         <module>infrastructure/Eureka</module>
+        <module>infrastructure/Gateway</module>
         <module>microservices</module>
     </modules>
 </project>

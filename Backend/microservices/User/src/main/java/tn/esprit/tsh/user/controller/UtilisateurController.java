@@ -1,21 +1,28 @@
 package tn.esprit.tsh.user.controller;
 
-import org.springframework.http.HttpStatus;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-import tn.esprit.tsh.user.dto.OtpRequest;
-import tn.esprit.tsh.user.dto.OtpVerificationRequest;
+import tn.esprit.tsh.user.dto.ProfilUpdateRequest;
+import tn.esprit.tsh.user.dto.UtilisateurResponse;
 import tn.esprit.tsh.user.entity.RoleType;
 import tn.esprit.tsh.user.entity.Utilisateur;
+import tn.esprit.tsh.user.exception.ResourceNotFoundException;
+import tn.esprit.tsh.user.mapper.UtilisateurMapper;
 import tn.esprit.tsh.user.service.IUtilisateurService;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/utilisateurs")
-@CrossOrigin(origins = "*")
+@Tag(name = "Utilisateurs", description = "Profil de l'utilisateur connecte et liste admin")
 public class UtilisateurController {
 
     private final IUtilisateurService utilisateurService;
@@ -24,92 +31,51 @@ public class UtilisateurController {
         this.utilisateurService = utilisateurService;
     }
 
-    // 1. POST /api/utilisateurs : Créer un compte en attente de validation OTP
-    @PostMapping
-    public ResponseEntity<Utilisateur> creerCompte(@RequestBody Utilisateur utilisateur) {
-        Utilisateur cree = utilisateurService.creerCompte(utilisateur);
-        utilisateurService.envoyerOtp(cree.getTelephone());
-        return new ResponseEntity<>(cree, HttpStatus.CREATED);
-    }
-
-    // 2. POST /api/utilisateurs/envoyer-otp : Générer et envoyer un code OTP par SMS
-    @PostMapping("/envoyer-otp")
-    public ResponseEntity<Map<String, String>> envoyerOtp(@RequestBody OtpRequest request) {
-        String code = utilisateurService.envoyerOtp(request.getTelephone());
-        return ResponseEntity.ok(Map.of(
-                "message", "Code OTP envoyé avec succès",
-                "telephone", request.getTelephone(),
-                "codeSimulation", code
-        ));
-    }
-
-    // 3. POST /api/utilisateurs/verifier-otp : Valider le code OTP et activer le compte
-    @PostMapping("/verifier-otp")
-    public ResponseEntity<Map<String, Object>> verifierOtp(@RequestBody OtpVerificationRequest request) {
-        boolean succes = utilisateurService.verifierOtp(request.getTelephone(), request.getCode());
-        if (succes) {
-            return ResponseEntity.ok(Map.of(
-                    "status", "SUCCESS",
-                    "message", "Numéro de téléphone vérifié et compte activé !"
-            ));
-        } else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                    "status", "FAILED",
-                    "message", "Code OTP invalide ou expiré."
-            ));
-        }
-    }
-
-    // 4. GET /api/utilisateurs : Lister tous les utilisateurs
     @GetMapping
-    public ResponseEntity<List<Utilisateur>> listerUtilisateurs() {
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Lister tous les utilisateurs (admin)")
+    @ApiResponse(responseCode = "200", description = "Liste des utilisateurs")
+    @ApiResponse(responseCode = "403", description = "Acces refuse (ROLE_ADMIN requis)")
+    public ResponseEntity<List<UtilisateurResponse>> listerUtilisateurs() {
         return ResponseEntity.ok(utilisateurService.listerUtilisateurs());
     }
 
-    // 5. GET /api/utilisateurs/{id} : Consulter un utilisateur par ID
-    @GetMapping("/{id}")
-    public ResponseEntity<Utilisateur> trouverParId(@PathVariable UUID id) {
-        return utilisateurService.trouverParId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    // 6. GET /api/utilisateurs/me : Consulter son profil utilisateur
     @GetMapping("/me")
-    public ResponseEntity<Utilisateur> getProfil(@RequestParam(required = false) UUID id,
-                                                 @RequestParam(required = false) String telephone) {
-        if (id != null) {
-            return utilisateurService.trouverParId(id)
-                    .map(ResponseEntity::ok)
-                    .orElse(ResponseEntity.notFound().build());
-        } else if (telephone != null) {
-            return utilisateurService.trouverParTelephone(telephone)
-                    .map(ResponseEntity::ok)
-                    .orElse(ResponseEntity.notFound().build());
-        }
-        return ResponseEntity.badRequest().build();
+    @Operation(summary = "Profil de l'utilisateur connecte")
+    @ApiResponse(responseCode = "200", description = "Profil trouve")
+    @ApiResponse(responseCode = "404", description = "Utilisateur introuvable")
+    public ResponseEntity<UtilisateurResponse> getProfil(@AuthenticationPrincipal Jwt jwt) {
+        Utilisateur user = utilisateurService
+                .trouverOuCreerParKeycloakId(jwt.getSubject(), jwt.getClaimAsString("email"), nom(jwt), role(jwt))
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur", jwt.getSubject()));
+        return ResponseEntity.ok(UtilisateurMapper.toResponse(user));
     }
 
-    // 7. PUT /api/utilisateurs/me : Mettre à jour ses coordonnées de profil
     @PutMapping("/me")
-    public ResponseEntity<Utilisateur> mettreAJourProfil(@RequestParam UUID id,
-                                                         @RequestBody Utilisateur modif) {
-        Utilisateur updated = utilisateurService.mettreAJourProfil(id, modif);
-        if (updated != null) {
-            return ResponseEntity.ok(updated);
-        }
-        return ResponseEntity.notFound().build();
+    @Operation(summary = "Mettre a jour le profil de l'utilisateur connecte")
+    @ApiResponse(responseCode = "200", description = "Profil mis a jour")
+    @ApiResponse(responseCode = "400", description = "Donnees invalides")
+    @ApiResponse(responseCode = "404", description = "Utilisateur introuvable")
+    @ApiResponse(responseCode = "409", description = "Email ou telephone deja utilise")
+    public ResponseEntity<UtilisateurResponse> mettreAJourProfil(@AuthenticationPrincipal Jwt jwt,
+                                                                 @Valid @RequestBody ProfilUpdateRequest dto) {
+        Utilisateur user = utilisateurService
+                .trouverOuCreerParKeycloakId(jwt.getSubject(), jwt.getClaimAsString("email"), nom(jwt), role(jwt))
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur", jwt.getSubject()));
+        return ResponseEntity.ok(utilisateurService.mettreAJourProfil(user.getId(), dto));
     }
 
-    // 8. PATCH /api/admin/utilisateurs/{id}/statut : Suspendre ou réactiver un utilisateur (admin)
-    @PatchMapping("/admin/{id}/statut")
-    public ResponseEntity<Utilisateur> changerStatut(@PathVariable UUID id,
-                                                     @RequestParam(required = false) RoleType role,
-                                                     @RequestParam(required = false) Boolean verifie) {
-        Utilisateur updated = utilisateurService.changerStatut(id, role, verifie);
-        if (updated != null) {
-            return ResponseEntity.ok(updated);
+    private static String nom(Jwt jwt) {
+        String name = jwt.getClaimAsString("name");
+        return name != null && !name.isBlank() ? name : jwt.getClaimAsString("preferred_username");
+    }
+
+    private static RoleType role(Jwt jwt) {
+        Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
+        if (realmAccess != null && realmAccess.get("roles") instanceof List<?> roles
+                && roles.contains("ROLE_ADMIN")) {
+            return RoleType.ROLE_ADMIN;
         }
-        return ResponseEntity.notFound().build();
+        return RoleType.ROLE_USER;
     }
 }

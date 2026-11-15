@@ -1,5 +1,7 @@
 package tn.esprit.tsh.user.service;
 
+import tn.esprit.tsh.user.dto.ProfilUpdateRequest;
+import tn.esprit.tsh.user.dto.UtilisateurResponse;
 import tn.esprit.tsh.user.entity.RoleType;
 import tn.esprit.tsh.user.entity.Utilisateur;
 
@@ -8,15 +10,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface IUtilisateurService {
-    Utilisateur creerCompte(Utilisateur utilisateur);
-    List<Utilisateur> listerUtilisateurs();
+    List<UtilisateurResponse> listerUtilisateurs();
     Optional<Utilisateur> trouverParId(UUID id);
-    Optional<Utilisateur> trouverParTelephone(String telephone);
-    Optional<Utilisateur> trouverParEmail(String email);
-    Utilisateur mettreAJourProfil(UUID id, Utilisateur modif);
-    Utilisateur changerStatut(UUID id, RoleType role, Boolean verifie);
-    void supprimerUtilisateur(UUID id);
-
-    String envoyerOtp(String telephone);
-    boolean verifierOtp(String telephone, String code);
+    Optional<Utilisateur> trouverOuCreerParKeycloakId(String keycloakId, String email, String nom, RoleType role);
+    UtilisateurResponse mettreAJourProfil(UUID id, ProfilUpdateRequest dto);
+    UtilisateurResponse changerStatut(UUID id, RoleType role, Boolean verifie);
 }

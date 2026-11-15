@@ -21,7 +21,7 @@ public class Utilisateur {
     @Column(name = "keycloak_id")
     private String keycloakId;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String telephone;
 
     @Column(nullable = false)

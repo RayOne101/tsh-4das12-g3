@@ -1,127 +1,109 @@
 package tn.esprit.tsh.user.service;
 
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import tn.esprit.tsh.user.dto.ProfilUpdateRequest;
+import tn.esprit.tsh.user.dto.UtilisateurResponse;
 import tn.esprit.tsh.user.entity.RoleType;
 import tn.esprit.tsh.user.entity.Utilisateur;
+import tn.esprit.tsh.user.exception.ConflictException;
+import tn.esprit.tsh.user.exception.ResourceNotFoundException;
+import tn.esprit.tsh.user.mapper.UtilisateurMapper;
 import tn.esprit.tsh.user.repository.UtilisateurRepository;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
-import java.util.Random;
 import java.util.UUID;
 
 @Service
+@Transactional
 public class UtilisateurServiceImpl implements IUtilisateurService {
 
-    private static final String OTP_PREFIX = "OTP:";
-    private static final Duration OTP_TTL = Duration.ofMinutes(5);
-
     private final UtilisateurRepository utilisateurRepository;
-    private final StringRedisTemplate redisTemplate;
 
-    public UtilisateurServiceImpl(UtilisateurRepository utilisateurRepository,
-                                  StringRedisTemplate redisTemplate) {
+    public UtilisateurServiceImpl(UtilisateurRepository utilisateurRepository) {
         this.utilisateurRepository = utilisateurRepository;
-        this.redisTemplate = redisTemplate;
     }
 
     @Override
-    public Utilisateur creerCompte(Utilisateur utilisateur) {
-        if (utilisateurRepository.existsByEmail(utilisateur.getEmail())) {
-            throw new IllegalArgumentException("Cet email est déjà utilisé: " + utilisateur.getEmail());
-        }
-        if (utilisateurRepository.existsByTelephone(utilisateur.getTelephone())) {
-            throw new IllegalArgumentException("Ce numéro de téléphone est déjà utilisé: " + utilisateur.getTelephone());
-        }
-
-        if (utilisateur.getRole() == null) {
-            utilisateur.setRole(RoleType.ROLE_USER);
-        }
-        if (utilisateur.getVerifie() == null) {
-            utilisateur.setVerifie(false);
-        }
-        return utilisateurRepository.save(utilisateur);
+    @Transactional(readOnly = true)
+    public List<UtilisateurResponse> listerUtilisateurs() {
+        return utilisateurRepository.findAll().stream()
+                .map(UtilisateurMapper::toResponse)
+                .toList();
     }
 
     @Override
-    public List<Utilisateur> listerUtilisateurs() {
-        return utilisateurRepository.findAll();
-    }
-
-    @Override
+    @Transactional(readOnly = true)
     public Optional<Utilisateur> trouverParId(UUID id) {
         return utilisateurRepository.findById(id);
     }
 
+    /**
+     * Keycloak gere l'inscription et l'authentification.
+     * - ligne pre-existante (ex: admin insere en base) : on la relie par email au premier login ;
+     * - nouvel utilisateur auto-enregistre : on cree sa ligne de profil depuis le JWT.
+     */
     @Override
-    public Optional<Utilisateur> trouverParTelephone(String telephone) {
-        return utilisateurRepository.findByTelephone(telephone);
+    public Optional<Utilisateur> trouverOuCreerParKeycloakId(String keycloakId, String email, String nom, RoleType role) {
+        Optional<Utilisateur> existant = utilisateurRepository.findByKeycloakId(keycloakId);
+        if (existant.isPresent()) {
+            return existant;
+        }
+        if (email == null) {
+            return Optional.empty();
+        }
+        return utilisateurRepository.findByEmail(email)
+                .map(user -> {
+                    user.setKeycloakId(keycloakId);
+                    return utilisateurRepository.save(user);
+                })
+                .or(() -> Optional.of(utilisateurRepository.save(Utilisateur.builder()
+                        .keycloakId(keycloakId)
+                        .email(email)
+                        .nom(nom != null && !nom.isBlank() ? nom : email)
+                        .role(role)
+                        .verifie(true)
+                        .build())));
     }
 
     @Override
-    public Optional<Utilisateur> trouverParEmail(String email) {
-        return utilisateurRepository.findByEmail(email);
-    }
+    public UtilisateurResponse mettreAJourProfil(UUID id, ProfilUpdateRequest dto) {
+        Utilisateur user = utilisateurRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur", id));
 
-    @Override
-    public Utilisateur mettreAJourProfil(UUID id, Utilisateur modif) {
-        return utilisateurRepository.findById(id).map(user -> {
-            if (modif.getNom() != null) user.setNom(modif.getNom());
-            if (modif.getEmail() != null) user.setEmail(modif.getEmail());
-            if (modif.getTelephone() != null) user.setTelephone(modif.getTelephone());
-            return utilisateurRepository.save(user);
-        }).orElse(null);
-    }
-
-    @Override
-    public Utilisateur changerStatut(UUID id, RoleType role, Boolean verifie) {
-        return utilisateurRepository.findById(id).map(user -> {
-            if (role != null) user.setRole(role);
-            if (verifie != null) user.setVerifie(verifie);
-            return utilisateurRepository.save(user);
-        }).orElse(null);
-    }
-
-    @Override
-    public void supprimerUtilisateur(UUID id) {
-        utilisateurRepository.deleteById(id);
-    }
-
-    @Override
-    public String envoyerOtp(String telephone) {
-        // 1. Générer code OTP à 6 chiffres
-        String code = String.format("%06d", new Random().nextInt(999999));
-
-        // 2. Sauvegarder dans Redis avec TTL de 5 minutes
-        redisTemplate.opsForValue().set(OTP_PREFIX + telephone, code, OTP_TTL);
-
-        System.out.println("==================================================");
-        System.out.println(" [REDIS OTP] Numéro: " + telephone + " | Code: " + code + " (TTL: 5 min)");
-        System.out.println("==================================================");
-
-        return code;
-    }
-
-    @Override
-    public boolean verifierOtp(String telephone, String code) {
-        String key = OTP_PREFIX + telephone;
-        String cachedCode = redisTemplate.opsForValue().get(key);
-
-        if (cachedCode != null && cachedCode.equals(code)) {
-            // Supprimer le code de Redis après utilisation
-            redisTemplate.delete(key);
-
-            // Activer le compte utilisateur dans PostgreSQL
-            utilisateurRepository.findByTelephone(telephone).ifPresent(user -> {
-                user.setVerifie(true);
-                utilisateurRepository.save(user);
-            });
-
-            return true;
+        if (dto.email() != null && !dto.email().equalsIgnoreCase(user.getEmail())
+                && utilisateurRepository.existsByEmail(dto.email())) {
+            throw new ConflictException("Adresse email deja utilisee");
+        }
+        if (dto.telephone() != null && !dto.telephone().equals(user.getTelephone())
+                && utilisateurRepository.existsByTelephone(dto.telephone())) {
+            throw new ConflictException("Numero de telephone deja utilise");
         }
 
-        return false;
+        if (dto.nom() != null) {
+            user.setNom(dto.nom());
+        }
+        if (dto.email() != null) {
+            user.setEmail(dto.email());
+        }
+        if (dto.telephone() != null) {
+            user.setTelephone(dto.telephone());
+        }
+        return UtilisateurMapper.toResponse(utilisateurRepository.save(user));
+    }
+
+    @Override
+    public UtilisateurResponse changerStatut(UUID id, RoleType role, Boolean verifie) {
+        Utilisateur user = utilisateurRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur", id));
+
+        if (role != null) {
+            user.setRole(role);
+        }
+        if (verifie != null) {
+            user.setVerifie(verifie);
+        }
+        return UtilisateurMapper.toResponse(utilisateurRepository.save(user));
     }
 }

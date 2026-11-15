@@ -5,19 +5,12 @@ services:
     restart: always
     environment:
       POSTGRES_DB: tsh_users
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "5433:5432"
     volumes:
       - postgres_user_data:/var/lib/postgresql/data
-
-  redis-user:
-    image: redis:7-alpine
-    container_name: tsh-redis-user
-    restart: always
-    ports:
-      - "6379:6379"
 
   pgweb:
     image: sosedoff/pgweb:latest
@@ -26,10 +19,25 @@ services:
     ports:
       - "8082:8081"
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres-user:5432/tsh_users?sslmode=disable
+      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres-user:5432/tsh_users?sslmode=disable
     command: ["pgweb", "--bind=0.0.0.0", "--listen=8081"]
     depends_on:
       - postgres-user
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: tsh-keycloak
+    restart: always
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:-http://localhost:8085}
+      KC_HTTP_ENABLED: "true"
+    ports:
+      - "8085:8080"
+    volumes:
+      - ../../infrastructure/keycloak/tsh-realm.json:/opt/keycloak/data/import/tsh-realm.json:ro
 
 volumes:
   postgres_user_data:

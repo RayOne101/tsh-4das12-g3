@@ -1,32 +1,32 @@
-### 1. Test via Gateway: Lister tous les utilisateurs (GET /api/utilisateurs)
-# Envoyé sur le port 8080 (Gateway) -> routé automatiquement vers User (port 8081)
+### 1. Token utilisateur (client de test tsh-cli)
+POST http://localhost:8085/realms/tsh/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=tsh-cli&username=etudiant@tsh.tn&password=etudiant123
+
+> {%
+    client.global.set("userToken", response.body.access_token);
+%}
+
+### 2. Profil de l'utilisateur connecte
+GET http://localhost:8083/api/utilisateurs/me
+Authorization: Bearer {{userToken}}
+
+### 3. Token admin
+POST http://localhost:8085/realms/tsh/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=tsh-cli&username=admin&password=admin123
+
+> {%
+    client.global.set("adminToken", response.body.access_token);
+%}
+
+### 4. Admin : lister les utilisateurs
 GET http://localhost:8083/api/utilisateurs
+Authorization: Bearer {{adminToken}}
 
-###
-
-### 2. Test via Gateway: Inscription d'un utilisateur (POST /api/utilisateurs)
-POST http://localhost:8083/api/utilisateurs
-Content-Type: application/json
-
-{
-  "nom": "Kais Ben Amor",
-  "email": "kais.benamor@esprit.tn",
-  "telephone": "21622334455"
-}
-
-###
-
-### 3. Test via Gateway: Vérifier OTP (POST /api/utilisateurs/verifier-otp)
-# Utilisez le code affiché dans la console du microservice User
-POST http://localhost:8083/api/utilisateurs/verifier-otp
-Content-Type: application/json
-
-{
-  "telephone": "21622334455",
-  "code": "123456"
-}
-
-###
-
-### 4. Test via Gateway: Profil utilisateur (GET /api/utilisateurs/me)
-GET http://localhost:8083/api/utilisateurs/me?telephone=21622334455
+### 5. Admin : suspendre / reactiver un utilisateur
+# Remplacer {id} par un id renvoye par la requete 4.
+PATCH http://localhost:8083/api/admin/utilisateurs/{id}/statut?verifie=false
+Authorization: Bearer {{adminToken}}

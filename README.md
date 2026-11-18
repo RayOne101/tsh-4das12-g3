@@ -21,7 +21,7 @@ tsh/
 │   │   ├── Gateway/              # API Gateway (routes + CORS)
 │   │   └── keycloak/             # Realm tsh (auth, rôles, clients)
 │   └── microservices/
-│       ├── User/                 # Profil, rôles, suspension (Keycloak)
+│       ├── User/                 # Profil et rôles (Keycloak)
 │       ├── Housing/              # Annonces logements, recherche, favoris
 │       ├── Colocation/           # Annonces colocation, matching Data Science
 │       ├── Contract/             # Contrats PDF, paiements et reçus
@@ -65,6 +65,7 @@ tsh/
 | Transport | 8769 |
 | Frontend (Vite) | 5173 |
 | PostgreSQL | 5433 |
+| MinIO (API / console) | 9000 / 9001 |
 
 ## Démarrage
 

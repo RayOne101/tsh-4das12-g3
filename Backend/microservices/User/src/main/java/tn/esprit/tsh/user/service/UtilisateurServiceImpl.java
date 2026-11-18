@@ -68,6 +68,14 @@ public class UtilisateurServiceImpl implements IUtilisateurService {
     }
 
     @Override
+    public UtilisateurResponse mettreAJourPhoto(UUID id, String photoUrl) {
+        Utilisateur user = utilisateurRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur", id));
+        user.setPhotoUrl(photoUrl);
+        return UtilisateurMapper.toResponse(utilisateurRepository.save(user));
+    }
+
+    @Override
     public UtilisateurResponse mettreAJourProfil(UUID id, ProfilUpdateRequest dto) {
         Utilisateur user = utilisateurRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur", id));
@@ -89,17 +97,6 @@ public class UtilisateurServiceImpl implements IUtilisateurService {
         }
         if (dto.telephone() != null) {
             user.setTelephone(dto.telephone());
-        }
-        return UtilisateurMapper.toResponse(utilisateurRepository.save(user));
-    }
-
-    @Override
-    public UtilisateurResponse changerStatut(UUID id, Boolean verifie) {
-        Utilisateur user = utilisateurRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur", id));
-
-        if (verifie != null) {
-            user.setVerifie(verifie);
         }
         return UtilisateurMapper.toResponse(utilisateurRepository.save(user));
     }

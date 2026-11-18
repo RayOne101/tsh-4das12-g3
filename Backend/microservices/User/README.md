@@ -63,7 +63,6 @@ Swagger est public en développement. En production, retirez l'autorisation
 - Clients :
   - `tsh-web` : public, Authorization Code + PKCE, redirect `http://localhost:5173/*`
   - `tsh-cli` : public, password grant, utilisé par les tests HTTP
-  - `tsh-user-service` : confidentiel, secret `change-me`, API Admin Keycloak
 
 Le realm est importé depuis `Backend/infrastructure/keycloak/tsh-realm.json`.
 Keycloak persiste ses données dans la base PostgreSQL `keycloak` ; le realm
@@ -77,12 +76,12 @@ Voir `Backend/infrastructure/keycloak/README.md` pour le détail.
 | `GET` | `/api/utilisateurs` | `ROLE_ADMIN` | Lister tous les profils |
 | `GET` | `/api/utilisateurs/me` | JWT valide | Profil de l'utilisateur connecté |
 | `PUT` | `/api/utilisateurs/me` | JWT valide | Mettre à jour `nom`, `email`, `telephone` |
-| `PATCH` | `/api/admin/utilisateurs/{id}/statut?verifie=false` | `ROLE_ADMIN` | Suspendre / réactiver un compte |
+| `POST` | `/api/utilisateurs/me/photo` | JWT valide | Envoyer une photo de profil (`multipart/form-data`, champ `file`) |
 
 `PUT /me` exige `nom` et `email`. Le téléphone reste optionnel.
 
-La suspension (`verifie=false`) désactive aussi le compte dans Keycloak : l'utilisateur
-ne peut plus se connecter.
+La photo est stockée dans MinIO (bucket `tsh-avatars`, 2 Mo max, jpeg/png/webp).
+Seule son URL est enregistrée en base, jamais le fichier.
 
 ## Erreurs
 
@@ -92,7 +91,7 @@ Les erreurs utilisent le format RFC 7807 `application/problem+json`.
 |---|---|
 | `400` | Validation, JSON invalide, UUID invalide |
 | `401` | JWT absent ou invalide |
-| `403` | Rôle insuffisant, ou compte suspendu sur `/api/utilisateurs/me` |
+| `403` | Rôle insuffisant |
 | `404` | Utilisateur introuvable |
 | `409` | Email ou téléphone déjà utilisé |
 
@@ -118,13 +117,12 @@ Exemple de validation :
 mvn test
 ```
 
-19 tests :
+18 tests :
 
-- tests unitaires : mapper, validation, service, converter de rôles Keycloak
-- tests d'intégration MockMvc : `401`, `403`, `/me`, compte suspendu, PATCH admin, `400`, `404`, `409`
+- tests unitaires : mapper, validation, service, stockage des images, converter de rôles Keycloak
+- tests d'intégration MockMvc : `401`, `403`, `/me`, envoi de photo, `400`, `404`, `409`
 
-Les tests d'intégration utilisent H2 en mémoire (`application-test.properties`) et
-mockent `KeycloakAdminService`.
+Les tests d'intégration utilisent H2 en mémoire (`application-test.properties`).
 
 ## Variables
 
@@ -137,7 +135,9 @@ mockent `KeycloakAdminService`.
 | `KEYCLOAK_DB_PASSWORD` | `keycloak` | Mot de passe de la base Keycloak |
 | `KEYCLOAK_DB_URL` | vide (local) | URL JDBC de la base Keycloak ; à définir pour une base managée |
 | `KEYCLOAK_DB_POOL_MAX_SIZE` | `10` | Taille max du pool JDBC Keycloak |
-| `KEYCLOAK_URL` | `http://localhost:8085` | API Admin Keycloak |
 | `KEYCLOAK_ISSUER_URI` | `http://localhost:8085/realms/tsh` | Validation JWT |
-| `KEYCLOAK_CLIENT_SECRET` | `change-me` | Client `tsh-user-service` |
+| `MINIO_ROOT_USER` | `minioadmin` | Accès MinIO |
+| `MINIO_ROOT_PASSWORD` | `minioadmin` | Accès MinIO |
+| `MINIO_PUBLIC_URL` | `http://localhost:9000` | Base des URL d'images renvoyées |
+| `MINIO_BUCKET` | `tsh-avatars` | Bucket des photos de profil |
 | `EUREKA_URL` | `http://localhost:8761/eureka/` | Découverte de services |

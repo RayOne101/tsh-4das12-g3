@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   LogOut,
@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { PageHeader, Panel } from '@/components/AppBits'
 import { useAuth } from '@/lib/auth'
+import { USE_MOCKS, uploadAvatar } from '@/lib/api'
 import { useToast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
@@ -17,6 +18,28 @@ export function Profile() {
   const { session, logout } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [photo, setPhoto] = useState<string | undefined>(session?.image)
+
+  const handlePhoto = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Sans backend (mode demo), on affiche juste un apercu local.
+    if (USE_MOCKS) {
+      setPhoto(URL.createObjectURL(file))
+      toast('Aperçu local — envoi réel désactivé en mode démo', 'info')
+      return
+    }
+
+    try {
+      const profile = await uploadAvatar(file)
+      setPhoto(profile.photoUrl ?? undefined)
+      toast('Photo de profil enregistrée', 'success')
+    } catch {
+      toast('Envoi de la photo impossible', 'error')
+    }
+  }
 
   // Matches backend ProfilUpdateRequest DTO:
   //   nom (String, required), email (String, required), telephone (String, optional)
@@ -47,10 +70,17 @@ export function Profile() {
       {/* Avatar card */}
       <div className="mb-6 flex flex-wrap items-center gap-4 rounded-[1.5rem] border border-ink/[0.07] bg-white p-5">
         <div className="relative">
-          <img src={session?.image} alt="" className="size-16 rounded-full object-cover" />
+          <img src={photo} alt="" className="size-16 rounded-full object-cover" />
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handlePhoto}
+            className="hidden"
+          />
           <button
             type="button"
-            onClick={() => toast('Changer de photo', 'info')}
+            onClick={() => fileInput.current?.click()}
             className="absolute -bottom-1 -right-1 grid size-6 place-items-center rounded-full border-2 border-white bg-ink text-cream"
             aria-label="Changer la photo"
           >

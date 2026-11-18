@@ -22,6 +22,7 @@ class UtilisateurMapperTest {
                 .telephone("21622334455")
                 .role(RoleType.ROLE_USER)
                 .verifie(true)
+                .photoUrl("http://localhost:9000/tsh-avatars/avatars/kc/photo.png")
                 .build();
 
         UtilisateurResponse response = UtilisateurMapper.toResponse(utilisateur);
@@ -32,5 +33,6 @@ class UtilisateurMapperTest {
         assertThat(response.telephone()).isEqualTo("21622334455");
         assertThat(response.role()).isEqualTo(RoleType.ROLE_USER);
         assertThat(response.verifie()).isTrue();
+        assertThat(response.photoUrl()).isEqualTo("http://localhost:9000/tsh-avatars/avatars/kc/photo.png");
     }
 }

@@ -66,10 +66,6 @@ Les rôles sont lus depuis le claim `realm_access.roles` du JWT.
 |---|---|---|
 | `tsh-web` | Public, PKCE | Frontend React, redirect `http://localhost:5173/*` |
 | `tsh-cli` | Public | Password grant pour les tests HTTP |
-| `tsh-user-service` | Confidentiel | API Admin Keycloak (suspension de compte) |
-
-Le secret de `tsh-user-service` est `change-me` en développement. Il doit être
-remplacé hors développement via `KEYCLOAK_CLIENT_SECRET`.
 
 ### Comptes de développement
 

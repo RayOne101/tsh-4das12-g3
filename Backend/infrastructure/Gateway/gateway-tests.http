@@ -29,19 +29,8 @@ grant_type=password&client_id=tsh-cli&username=admin&password=admin123
     client.global.set("adminToken", response.body.access_token);
 %}
 
-### 6. Admin : lister les utilisateurs (memorise l'id de l'etudiant)
+### 6. Admin : lister les utilisateurs
 GET http://localhost:8083/api/utilisateurs
 Authorization: Bearer {{adminToken}}
 
-> {%
-    const cible = response.body.find(u => u.email === "etudiant@tsh.tn") || response.body[0];
-    client.global.set("userId", cible.id);
-%}
 
-### 7. Admin : suspendre (desactive aussi le login Keycloak)
-PATCH http://localhost:8083/api/admin/utilisateurs/{{userId}}/statut?verifie=false
-Authorization: Bearer {{adminToken}}
-
-### 8. Admin : reactiver (a executer pour restaurer le compte)
-PATCH http://localhost:8083/api/admin/utilisateurs/{{userId}}/statut?verifie=true
-Authorization: Bearer {{adminToken}}

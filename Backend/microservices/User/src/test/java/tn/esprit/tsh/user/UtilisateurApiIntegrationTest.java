@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -18,18 +19,17 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import tn.esprit.tsh.user.entity.RoleType;
 import tn.esprit.tsh.user.entity.Utilisateur;
 import tn.esprit.tsh.user.repository.UtilisateurRepository;
-import tn.esprit.tsh.user.service.KeycloakAdminService;
+import tn.esprit.tsh.user.service.MediaStorageService;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -49,7 +49,7 @@ class UtilisateurApiIntegrationTest {
     private UtilisateurRepository utilisateurRepository;
 
     @MockBean
-    private KeycloakAdminService keycloakAdminService;
+    private MediaStorageService mediaStorageService;
 
     @TestConfiguration
     static class JwtTestConfig {
@@ -66,7 +66,6 @@ class UtilisateurApiIntegrationTest {
     @BeforeEach
     void cleanDatabase() {
         utilisateurRepository.deleteAll();
-        reset(keycloakAdminService);
     }
 
     @Test
@@ -87,12 +86,16 @@ class UtilisateurApiIntegrationTest {
     }
 
     @Test
-    void suspendedUserCannotReadProfile() throws Exception {
-        persist("kc-user", "user@tsh.tn", false);
+    void uploadAvatarStoresUrlOnProfile() throws Exception {
+        when(mediaStorageService.uploadAvatar(anyString(), any()))
+                .thenReturn("http://localhost:9000/tsh-avatars/avatars/kc-user/photo.png");
+        MockMultipartFile file = new MockMultipartFile("file", "photo.png", "image/png", new byte[]{1, 2, 3});
 
-        mockMvc.perform(get("/api/utilisateurs/me")
+        mockMvc.perform(multipart("/api/utilisateurs/me/photo").file(file)
                         .with(token("kc-user", "user@tsh.tn", "ROLE_USER")))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.photoUrl")
+                        .value("http://localhost:9000/tsh-avatars/avatars/kc-user/photo.png"));
     }
 
     @Test
@@ -140,50 +143,6 @@ class UtilisateurApiIntegrationTest {
                 .andExpect(content().contentTypeCompatibleWith(PROBLEM_JSON))
                 .andExpect(jsonPath("$.title").value("Conflict"))
                 .andExpect(jsonPath("$.detail").value("Adresse email deja utilisee"));
-    }
-
-    @Test
-    void studentCannotChangeStatus() throws Exception {
-        Utilisateur target = persist("kc-target", "target@tsh.tn", true);
-
-        mockMvc.perform(patch("/api/admin/utilisateurs/{id}/statut", target.getId())
-                        .param("verifie", "false")
-                        .with(token("kc-user", "user@tsh.tn", "ROLE_USER")))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void adminCanSuspendUser() throws Exception {
-        Utilisateur target = persist("kc-target", "target@tsh.tn", true);
-
-        mockMvc.perform(patch("/api/admin/utilisateurs/{id}/statut", target.getId())
-                        .param("verifie", "false")
-                        .with(token("kc-admin", "admin@tsh.tn", "ROLE_ADMIN")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.verifie").value(false));
-
-        verify(keycloakAdminService).setEnabled("kc-target", false);
-        assertThat(utilisateurRepository.findById(target.getId()).orElseThrow().getVerifie()).isFalse();
-    }
-
-    @Test
-    void adminPatchUnknownUserReturns404() throws Exception {
-        mockMvc.perform(patch("/api/admin/utilisateurs/{id}/statut", UUID.randomUUID())
-                        .param("verifie", "false")
-                        .with(token("kc-admin", "admin@tsh.tn", "ROLE_ADMIN")))
-                .andExpect(status().isNotFound())
-                .andExpect(content().contentTypeCompatibleWith(PROBLEM_JSON))
-                .andExpect(jsonPath("$.title").value("Resource not found"));
-    }
-
-    @Test
-    void adminPatchInvalidUuidReturns400() throws Exception {
-        mockMvc.perform(patch("/api/admin/utilisateurs/not-a-uuid/statut")
-                        .param("verifie", "false")
-                        .with(token("kc-admin", "admin@tsh.tn", "ROLE_ADMIN")))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().contentTypeCompatibleWith(PROBLEM_JSON))
-                .andExpect(jsonPath("$.title").value("Invalid parameter"));
     }
 
     private Utilisateur persist(String keycloakId, String email, boolean verifie) {

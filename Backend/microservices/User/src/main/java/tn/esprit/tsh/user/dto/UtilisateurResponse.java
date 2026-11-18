@@ -24,6 +24,10 @@ public record UtilisateurResponse(
         RoleType role,
 
         @Schema(description = "Compte actif ou suspendu", example = "true")
-        Boolean verifie
+        Boolean verifie,
+
+        @Schema(description = "URL de la photo de profil", nullable = true,
+                example = "http://localhost:9000/tsh-avatars/avatars/kc-123/uuid.jpg")
+        String photoUrl
 ) {
 }

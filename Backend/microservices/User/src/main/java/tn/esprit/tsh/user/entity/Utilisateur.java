@@ -24,6 +24,9 @@ public class Utilisateur {
     @Column(unique = true)
     private String telephone;
 
+    @Column(name = "photo_url", length = 512)
+    private String photoUrl;
+
     @Column(nullable = false)
     private String nom;
 

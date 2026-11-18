@@ -15,7 +15,7 @@ import type { Role } from '@/lib/data'
 import { useToast } from '@/lib/toast'
 
 export function Login() {
-  const { isAuthenticated, login } = useAuth()
+  const { isAuthenticated, login, authEnabled, loginWithKeycloak } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
   const [params] = useSearchParams()
@@ -35,6 +35,14 @@ export function Login() {
     e.preventDefault()
     if (!email.trim() || !password.trim()) {
       toast('Veuillez renseigner votre e-mail et mot de passe.', 'error')
+      return
+    }
+
+    // Avec Keycloak configure, le formulaire delegue la verification des
+    // identifiants au serveur : on redirige vers l'ecran de connexion du realm.
+    if (authEnabled) {
+      setLoading(true)
+      void loginWithKeycloak('student', returnTo)
       return
     }
 
@@ -62,6 +70,10 @@ export function Login() {
 
   const goToKeycloak = () => {
     setKeycloakLoading(true)
+    if (authEnabled) {
+      void loginWithKeycloak('student', returnTo)
+      return
+    }
     setTimeout(() => {
       navigate(`/auth/callback?returnTo=${encodeURIComponent(returnTo)}&role=user`)
     }, 600)

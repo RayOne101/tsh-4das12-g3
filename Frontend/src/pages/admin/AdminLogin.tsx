@@ -8,7 +8,7 @@ import { useAuth } from '@/lib/auth'
  * etudiants, sans inscription ni SSO academique.
  */
 export function AdminLogin() {
-  const { session, isAuthenticated, login } = useAuth()
+  const { session, isAuthenticated, login, authEnabled, loginWithKeycloak } = useAuth()
   const navigate = useNavigate()
   const [params] = useSearchParams()
 
@@ -26,6 +26,13 @@ export function AdminLogin() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim() || !password.trim()) return
+
+    // Client Keycloak dedie : le realm verifie les identifiants et le role.
+    if (authEnabled) {
+      setLoading(true)
+      void loginWithKeycloak('admin', returnTo)
+      return
+    }
 
     setLoading(true)
     setTimeout(() => {
@@ -128,8 +135,9 @@ export function AdminLogin() {
 
           <p className="mt-6 flex items-start gap-2 text-[10.5px] leading-relaxed text-ink-soft">
             <KeyRound className="mt-0.5 size-3.5 shrink-0 text-clay-deep" />
-            Démonstration : n’importe quel e-mail et mot de passe ouvre une session admin simulée.
-            L’authentification réelle sera déléguée à un client Keycloak dédié.
+            {authEnabled
+              ? 'Authentification déléguée à Keycloak (client tsh-admin-web). Seuls les comptes ROLE_ADMIN ouvrent une session.'
+              : 'Démonstration : n’importe quel e-mail et mot de passe ouvre une session admin simulée. Configure VITE_KEYCLOAK_URL pour la connexion réelle.'}
           </p>
         </div>
       </main>

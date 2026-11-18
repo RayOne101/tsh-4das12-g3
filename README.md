@@ -69,6 +69,35 @@ tsh/
 
 ## Démarrage
 
+### Tout démarrer en une commande
+
+```bash
+cd Backend
+./start-local.sh --build   # conteneurs + Eureka + User + Gateway
+
+cd ../Frontend
+npm install
+npm run dev                # http://localhost:5173
+```
+
+`./start-local.sh` sans `--build` réutilise les jars existants et ignore les
+services déjà lancés. `./stop-local.sh` arrête les trois services Spring
+(`--infra` coupe aussi les conteneurs). Logs et PID : `Backend/logs/`.
+
+### Comptes de test (realm `tsh`)
+
+| Compte | Mot de passe | Accès |
+|---|---|---|
+| `etudiant@tsh.tn` | `etudiant123` | Application étudiante (`/connexion`) |
+| `admin` | `admin123` | Console d'administration (`/admin/connexion`) |
+
+La connexion du frontend passe réellement par Keycloak (Authorization Code +
+PKCE) dès que `VITE_KEYCLOAK_URL` est renseigné dans `Frontend/.env`
+(voir `Frontend/.env.example`). Seuls le profil et la photo passent par l'API ;
+les autres pages affichent encore les données de démonstration.
+
+### Documentation par composant
+
 - [Microservice User](Backend/microservices/User/README.md)
 - [API Gateway](Backend/infrastructure/Gateway/README.md)
 - [Keycloak](Backend/infrastructure/keycloak/README.md)

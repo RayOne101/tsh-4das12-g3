@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { SiteHeader } from '@/components/SiteHeader'
 import { SiteFooter } from '@/components/SiteFooter'
 import { DemoPanel } from '@/components/DemoPanel'
+import { useAuth } from '@/lib/auth'
 import { useReveal } from '@/lib/utils'
 
 export function ScrollToTop() {
@@ -15,6 +16,7 @@ export function ScrollToTop() {
 
 export function PublicLayout() {
   const { pathname } = useLocation()
+  const { authEnabled } = useAuth()
   useReveal([pathname])
 
   return (
@@ -24,7 +26,8 @@ export function PublicLayout() {
         <Outlet />
       </main>
       <SiteFooter />
-      <DemoPanel />
+      {/* Le panneau de simulation disparait des que la vraie connexion Keycloak est activee. */}
+      {!authEnabled && <DemoPanel />}
     </div>
   )
 }

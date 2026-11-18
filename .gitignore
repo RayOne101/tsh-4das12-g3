@@ -30,6 +30,9 @@ application-secret.yml
 .DS_Store
 Thumbs.db
 
+# --- Logs des scripts locaux ---
+Backend/logs/
+
 # --- Données locales (volumes Docker, dumps) ---
 data/
 *.sql.gz

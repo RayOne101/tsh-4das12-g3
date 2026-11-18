@@ -14,6 +14,9 @@ Il ne gère pas l'OTP.
 
 ## Démarrage
 
+> Pour lancer toute la pile (conteneurs + Eureka + User + Gateway) d'un coup :
+> `Backend/start-local.sh --build`, puis `Backend/stop-local.sh` pour arrêter.
+
 ### 1. Infrastructure
 
 ```powershell

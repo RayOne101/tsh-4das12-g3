@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth'
 import { useReveal } from '@/lib/utils'
 
 export function AppShell() {
-  const { session } = useAuth()
+  const { session, authEnabled } = useAuth()
   const location = useLocation()
   useReveal([location.pathname, session?.role])
 
@@ -21,7 +21,7 @@ export function AppShell() {
       </main>
 
       <SiteFooter />
-      <DemoPanel />
+      {!authEnabled && <DemoPanel />}
     </div>
   )
 }

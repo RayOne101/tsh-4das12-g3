@@ -64,8 +64,26 @@ Les rôles sont lus depuis le claim `realm_access.roles` du JWT.
 
 | Client | Type | Usage |
 |---|---|---|
-| `tsh-web` | Public, PKCE | Frontend React, redirect `http://localhost:5173/*` |
+| `tsh-web` | Public, PKCE | Application étudiante, redirect `http://localhost:5173/*` |
+| `tsh-admin-web` | Public, PKCE | Console d'administration, redirect `http://localhost:5173/admin/callback` |
 | `tsh-cli` | Public | Password grant pour les tests HTTP |
+
+### Connexion depuis le frontend
+
+Le frontend utilise le flow Authorization Code + PKCE : aucun secret n'est
+embarqué dans le navigateur. Il est activé par `Frontend/.env` :
+
+```dotenv
+VITE_KEYCLOAK_URL=http://localhost:8085
+VITE_KEYCLOAK_REALM=tsh
+VITE_KEYCLOAK_CLIENT_ID=tsh-web
+VITE_KEYCLOAK_ADMIN_CLIENT_ID=tsh-admin-web
+```
+
+L'application étudiante ouvre une session avec `tsh-web`. La console
+`/admin/connexion` utilise `tsh-admin-web` et refuse toute session sans le rôle
+realm `ROLE_ADMIN`. Sans `VITE_KEYCLOAK_URL`, le frontend retombe sur une
+connexion simulée (mode démonstration).
 
 ### Comptes de développement
 

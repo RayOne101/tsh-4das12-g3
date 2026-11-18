@@ -96,7 +96,8 @@ public class UtilisateurServiceImpl implements IUtilisateurService {
             user.setEmail(dto.email());
         }
         if (dto.telephone() != null) {
-            user.setTelephone(dto.telephone());
+            // Chaine vide = l'utilisateur a efface son numero ; null = champ non fourni.
+            user.setTelephone(dto.telephone().isBlank() ? null : dto.telephone());
         }
         return UtilisateurMapper.toResponse(utilisateurRepository.save(user));
     }

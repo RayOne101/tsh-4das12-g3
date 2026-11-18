@@ -52,6 +52,28 @@
       }
     },
     {
+      "clientId": "tsh-admin-web",
+      "name": "TSH Console admin",
+      "description": "Console d'administration, interface separee de l'app etudiante",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:5173/admin/callback"
+      ],
+      "webOrigins": [
+        "http://localhost:5173"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/*"
+      }
+    },
+    {
       "clientId": "tsh-cli",
       "name": "TSH CLI / tests (password grant)",
       "enabled": true,

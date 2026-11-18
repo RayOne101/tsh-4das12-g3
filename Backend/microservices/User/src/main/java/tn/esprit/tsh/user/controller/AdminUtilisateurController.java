@@ -7,7 +7,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import tn.esprit.tsh.user.dto.UtilisateurResponse;
-import tn.esprit.tsh.user.entity.RoleType;
 import tn.esprit.tsh.user.entity.Utilisateur;
 import tn.esprit.tsh.user.exception.ResourceNotFoundException;
 import tn.esprit.tsh.user.service.IUtilisateurService;
@@ -38,7 +37,6 @@ public class AdminUtilisateurController {
     @ApiResponse(responseCode = "200", description = "Statut mis a jour")
     @ApiResponse(responseCode = "404", description = "Utilisateur introuvable")
     public ResponseEntity<UtilisateurResponse> changerStatut(@PathVariable UUID id,
-                                                             @RequestParam(required = false) RoleType role,
                                                              @RequestParam(required = false) Boolean verifie) {
         Utilisateur existant = utilisateurService.trouverParId(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur", id));
@@ -48,6 +46,6 @@ public class AdminUtilisateurController {
             keycloakAdminService.setEnabled(existant.getKeycloakId(), verifie);
         }
 
-        return ResponseEntity.ok(utilisateurService.changerStatut(id, role, verifie));
+        return ResponseEntity.ok(utilisateurService.changerStatut(id, verifie));
     }
 }

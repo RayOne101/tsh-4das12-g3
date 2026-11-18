@@ -14,5 +14,5 @@ public interface IUtilisateurService {
     Optional<Utilisateur> trouverParId(UUID id);
     Optional<Utilisateur> trouverOuCreerParKeycloakId(String keycloakId, String email, String nom, RoleType role);
     UtilisateurResponse mettreAJourProfil(UUID id, ProfilUpdateRequest dto);
-    UtilisateurResponse changerStatut(UUID id, RoleType role, Boolean verifie);
+    UtilisateurResponse changerStatut(UUID id, Boolean verifie);
 }

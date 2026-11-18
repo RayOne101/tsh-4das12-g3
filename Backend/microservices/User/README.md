@@ -27,11 +27,13 @@ docker compose up -d
 
 | Service | URL |
 |---|---|
-| PostgreSQL | `localhost:5433` (base `tsh_users`) |
-| pgweb | http://localhost:8082 |
+| PostgreSQL | `localhost:5433` (bases `tsh_users` et `keycloak`) |
+| pgweb User | http://localhost:8082 |
+| pgweb Keycloak | http://localhost:8086 |
 | Keycloak | http://localhost:8085 |
 
 Les valeurs par défaut suffisent : `postgres` / `postgres`, admin Keycloak `admin` / `admin`.
+Keycloak utilise la base `keycloak` sur le même serveur PostgreSQL, et non la base `tsh_users`.
 
 ### 2. Microservice
 
@@ -64,6 +66,8 @@ Swagger est public en développement. En production, retirez l'autorisation
   - `tsh-user-service` : confidentiel, secret `change-me`, API Admin Keycloak
 
 Le realm est importé depuis `Backend/infrastructure/keycloak/tsh-realm.json`.
+Keycloak persiste ses données dans la base PostgreSQL `keycloak` ; le realm
+n'est importé que si cette base est vide.
 Voir `Backend/infrastructure/keycloak/README.md` pour le détail.
 
 ## API
@@ -129,6 +133,10 @@ mockent `KeycloakAdminService`.
 | `POSTGRES_USER` | `postgres` | Connexion PostgreSQL |
 | `POSTGRES_PASSWORD` | `postgres` | Connexion PostgreSQL |
 | `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5433/tsh_users` | URL JDBC |
+| `KEYCLOAK_DB_USER` | `keycloak` | Utilisateur de la base Keycloak |
+| `KEYCLOAK_DB_PASSWORD` | `keycloak` | Mot de passe de la base Keycloak |
+| `KEYCLOAK_DB_URL` | vide (local) | URL JDBC de la base Keycloak ; à définir pour une base managée |
+| `KEYCLOAK_DB_POOL_MAX_SIZE` | `10` | Taille max du pool JDBC Keycloak |
 | `KEYCLOAK_URL` | `http://localhost:8085` | API Admin Keycloak |
 | `KEYCLOAK_ISSUER_URI` | `http://localhost:8085/realms/tsh` | Validation JWT |
 | `KEYCLOAK_CLIENT_SECRET` | `change-me` | Client `tsh-user-service` |

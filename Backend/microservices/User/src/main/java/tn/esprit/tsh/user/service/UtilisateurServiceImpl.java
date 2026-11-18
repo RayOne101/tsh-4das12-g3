@@ -94,13 +94,10 @@ public class UtilisateurServiceImpl implements IUtilisateurService {
     }
 
     @Override
-    public UtilisateurResponse changerStatut(UUID id, RoleType role, Boolean verifie) {
+    public UtilisateurResponse changerStatut(UUID id, Boolean verifie) {
         Utilisateur user = utilisateurRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur", id));
 
-        if (role != null) {
-            user.setRole(role);
-        }
         if (verifie != null) {
             user.setVerifie(verifie);
         }

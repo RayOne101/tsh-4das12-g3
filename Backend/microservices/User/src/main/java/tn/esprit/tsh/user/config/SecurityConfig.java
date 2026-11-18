@@ -13,53 +13,45 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Keycloak place les roles dans "realm_access.roles" (pas dans "scope").
+ * Le converter ci-dessous les expose en authorities Spring : hasRole("ADMIN")
+ * fonctionne alors sans configuration supplementaire.
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-            .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                // CORS preflight
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                // Documentation OpenAPI (dev)
-                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                // Moderation : ROLE_ADMIN uniquement
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                // Tout le reste exige un JWT Keycloak valide
-                .anyRequest().authenticated())
-            .oauth2ResourceServer(oauth2 -> oauth2
-                .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
-
-        return http.build();
+    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        return http
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .anyRequest().authenticated())
+                .oauth2ResourceServer(o -> o.jwt(jwt -> jwt
+                        .jwtAuthenticationConverter(jwtAuthenticationConverter())))
+                .build();
     }
 
-    /**
-     * Keycloak place les roles dans le claim "realm_access.roles" (et non dans "scope").
-     * Sans ce converter, hasRole("ADMIN") renverrait toujours 403.
-     */
     @Bean
-    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+    JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
-            Collection<GrantedAuthority> authorities = new ArrayList<>();
-            Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
-            if (realmAccess != null && realmAccess.get("roles") instanceof List<?> roles) {
-                roles.stream()
-                        .map(String::valueOf)
-                        .map(SimpleGrantedAuthority::new)
-                        .forEach(authorities::add);
+            Map<String, Object> realm = jwt.getClaimAsMap("realm_access");
+            if (realm == null || !(realm.get("roles") instanceof List<?> roles)) {
+                return List.of();
             }
-            return authorities;
+            return roles.stream()
+                    .<GrantedAuthority>map(role -> new SimpleGrantedAuthority(String.valueOf(role)))
+                    .toList();
         });
         return converter;
     }

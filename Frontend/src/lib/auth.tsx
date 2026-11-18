@@ -4,12 +4,11 @@ import { avatar } from './data'
 import { setAccessToken } from './api'
 import {
   AUTH_ENABLED,
-  beginLogin,
   endSession,
-  finishLogin,
   isAdmin,
   loadTokens,
   refreshTokens,
+  signInWithPassword,
   storeTokens,
   type AuthTarget,
   type Tokens,
@@ -29,8 +28,13 @@ interface AuthContextValue {
   /** true si la connexion reelle Keycloak est configuree (VITE_KEYCLOAK_URL). */
   authEnabled: boolean
   login: (role?: Role, customData?: Partial<Session>) => void
-  loginWithKeycloak: (target: AuthTarget, returnTo: string) => Promise<void>
-  finishKeycloakLogin: (target: AuthTarget, options?: { requireAdmin?: boolean }) => Promise<Tokens>
+  /** Verifie les identifiants aupres de Keycloak et ouvre la session. */
+  signIn: (
+    target: AuthTarget,
+    username: string,
+    password: string,
+    options?: { requireAdmin?: boolean },
+  ) => Promise<Tokens>
   logout: () => void
   switchRole: (role: Role) => void
   expire: () => void
@@ -136,13 +140,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
   }, [])
 
-  const loginWithKeycloak = useCallback(async (target: AuthTarget, returnTo: string) => {
-    await beginLogin(target, returnTo)
-  }, [])
-
-  const finishKeycloakLogin = useCallback(
-    async (target: AuthTarget, options?: { requireAdmin?: boolean }) => {
-      const next = await finishLogin(target, window.location.search)
+  const signIn = useCallback(
+    async (
+      target: AuthTarget,
+      username: string,
+      password: string,
+      options?: { requireAdmin?: boolean },
+    ) => {
+      const next = await signInWithPassword(target, username, password)
       if (options?.requireAdmin && !isAdmin(next)) {
         storeTokens(null)
         setTokens(null)
@@ -199,13 +204,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: Boolean(session),
       authEnabled: AUTH_ENABLED,
       login,
-      loginWithKeycloak,
-      finishKeycloakLogin,
+      signIn,
       logout,
       switchRole,
       expire,
     }),
-    [session, login, loginWithKeycloak, finishKeycloakLogin, logout, switchRole, expire],
+    [session, login, signIn, logout, switchRole, expire],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

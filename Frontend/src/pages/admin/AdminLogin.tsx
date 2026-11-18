@@ -8,29 +8,39 @@ import { useAuth } from '@/lib/auth'
  * etudiants, sans inscription ni SSO academique.
  */
 export function AdminLogin() {
-  const { session, isAuthenticated, login, authEnabled, loginWithKeycloak } = useAuth()
+  const { session, isAuthenticated, login, authEnabled, signIn } = useAuth()
   const navigate = useNavigate()
   const [params] = useSearchParams()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<'credentials' | 'role' | null>(
+    params.get('erreur') === 'role' ? 'role' : null,
+  )
 
   const returnTo = params.get('returnTo') ?? '/admin'
-  const roleError = params.get('erreur') === 'role'
 
   if (isAuthenticated && session?.role === 'admin') {
     return <Navigate to={returnTo} replace />
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim() || !password.trim()) return
 
-    // Client Keycloak dedie : le realm verifie les identifiants et le role.
+    // Client Keycloak dedie : le realm verifie les identifiants, on verifie le role.
     if (authEnabled) {
       setLoading(true)
-      void loginWithKeycloak('admin', returnTo)
+      setError(null)
+      try {
+        await signIn('admin', email.trim(), password, { requireAdmin: true })
+        navigate(returnTo, { replace: true })
+      } catch (err) {
+        setError(err instanceof Error && err.message === 'ROLE_ADMIN requis' ? 'role' : 'credentials')
+      } finally {
+        setLoading(false)
+      }
       return
     }
 
@@ -84,9 +94,11 @@ export function AdminLogin() {
             Identifiants fournis par l’équipe technique.
           </p>
 
-          {roleError && (
+          {error && (
             <p className="mt-4 rounded-xl border border-rust/25 bg-rust-soft/60 px-3 py-2 text-[11.5px] text-rust">
-              Ce compte n’a pas le rôle administrateur.
+              {error === 'role'
+                ? 'Ce compte n’a pas le rôle administrateur.'
+                : 'E-mail ou mot de passe incorrect.'}
             </p>
           )}
 
@@ -136,7 +148,7 @@ export function AdminLogin() {
           <p className="mt-6 flex items-start gap-2 text-[10.5px] leading-relaxed text-ink-soft">
             <KeyRound className="mt-0.5 size-3.5 shrink-0 text-clay-deep" />
             {authEnabled
-              ? 'Authentification déléguée à Keycloak (client tsh-admin-web). Seuls les comptes ROLE_ADMIN ouvrent une session.'
+              ? 'Identifiants vérifiés par Keycloak (client tsh-admin-web). Seuls les comptes ROLE_ADMIN ouvrent une session.'
               : 'Démonstration : n’importe quel e-mail et mot de passe ouvre une session admin simulée. Configure VITE_KEYCLOAK_URL pour la connexion réelle.'}
           </p>
         </div>

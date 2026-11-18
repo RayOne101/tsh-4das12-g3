@@ -38,7 +38,7 @@
       "publicClient": true,
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
+      "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": false,
       "redirectUris": [
         "http://localhost:5173/*"
@@ -58,9 +58,9 @@
       "enabled": true,
       "protocol": "openid-connect",
       "publicClient": true,
-      "standardFlowEnabled": true,
+      "standardFlowEnabled": false,
       "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
+      "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": false,
       "redirectUris": [
         "http://localhost:5173/admin/callback"
@@ -87,7 +87,7 @@
   ],
   "users": [
     {
-      "username": "admin",
+      "username": "admin@tsh.tn",
       "enabled": true,
       "email": "admin@tsh.tn",
       "emailVerified": true,

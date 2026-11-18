@@ -62,7 +62,7 @@ Swagger est public en développement. En production, retirez l'autorisation
 - Console : http://localhost:8085/admin — `admin` / `admin`
 - Realm : `tsh`
 - Comptes de développement :
-  - `admin` / `admin123` (`admin@tsh.tn`, `ROLE_ADMIN`)
+  - `admin@tsh.tn` / `admin123` (`ROLE_ADMIN`)
   - `etudiant@tsh.tn` / `etudiant123` (`ROLE_USER`)
 - Le username est l'email : `etudiant` seul ne fonctionne pas.
 - Clients :

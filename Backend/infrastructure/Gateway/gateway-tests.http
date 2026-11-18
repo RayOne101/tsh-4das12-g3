@@ -23,7 +23,7 @@ Authorization: Bearer {{userToken}}
 POST http://localhost:8085/realms/tsh/protocol/openid-connect/token
 Content-Type: application/x-www-form-urlencoded
 
-grant_type=password&client_id=tsh-cli&username=admin&password=admin123
+grant_type=password&client_id=tsh-cli&username=admin@tsh.tn&password=admin123
 
 > {%
     client.global.set("adminToken", response.body.access_token);

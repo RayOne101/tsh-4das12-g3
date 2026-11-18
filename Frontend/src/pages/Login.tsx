@@ -1,21 +1,13 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
-import {
-  ArrowRight,
-  ArrowUpRight,
-  Eye,
-  EyeOff,
-  KeyRound,
-  Lock,
-  Mail,
-} from 'lucide-react'
+import { ArrowRight, ArrowUpRight, Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { Brand } from '@/components/Brand'
 import { useAuth } from '@/lib/auth'
 import type { Role } from '@/lib/data'
 import { useToast } from '@/lib/toast'
 
 export function Login() {
-  const { isAuthenticated, login, authEnabled, loginWithKeycloak } = useAuth()
+  const { isAuthenticated, login, authEnabled, signIn } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
   const [params] = useSearchParams()
@@ -25,24 +17,30 @@ export function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(true)
   const [loading, setLoading] = useState(false)
-  const [keycloakLoading, setKeycloakLoading] = useState(false)
 
   const returnTo = params.get('returnTo') ?? '/logements'
 
   if (isAuthenticated) return <Navigate to={returnTo} replace />
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim() || !password.trim()) {
       toast('Veuillez renseigner votre e-mail et mot de passe.', 'error')
       return
     }
 
-    // Avec Keycloak configure, le formulaire delegue la verification des
-    // identifiants au serveur : on redirige vers l'ecran de connexion du realm.
+    // Keycloak verifie les identifiants, mais on reste sur la page TSH.
     if (authEnabled) {
       setLoading(true)
-      void loginWithKeycloak('student', returnTo)
+      try {
+        const tokens = await signIn('student', email.trim(), password)
+        toast(`Connexion réussie — Bienvenue ${tokens.claims.name ?? email} !`, 'success')
+        navigate(returnTo)
+      } catch {
+        toast('E-mail ou mot de passe incorrect.', 'error')
+      } finally {
+        setLoading(false)
+      }
       return
     }
 
@@ -66,17 +64,6 @@ export function Login() {
 
   const handleForgotPassword = () => {
     toast(`Un e-mail de réinitialisation a été simulé pour ${email || 'ton adresse'}.`, 'info')
-  }
-
-  const goToKeycloak = () => {
-    setKeycloakLoading(true)
-    if (authEnabled) {
-      void loginWithKeycloak('student', returnTo)
-      return
-    }
-    setTimeout(() => {
-      navigate(`/auth/callback?returnTo=${encodeURIComponent(returnTo)}&role=user`)
-    }, 600)
   }
 
   return (
@@ -217,25 +204,6 @@ export function Login() {
                   <ArrowRight className="size-4" />
                 </>
               )}
-            </button>
-
-            {/* SSO divider */}
-            <div className="flex items-center gap-3">
-              <span className="h-px flex-1 bg-ink/10" />
-              <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-soft">
-                ou SSO académique
-              </span>
-              <span className="h-px flex-1 bg-ink/10" />
-            </div>
-
-            <button
-              type="button"
-              onClick={goToKeycloak}
-              disabled={keycloakLoading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-ink/15 bg-white py-2.5 text-[12.5px] font-semibold text-ink shadow-sm transition hover:border-ink/30 hover:bg-cream"
-            >
-              <KeyRound className="size-3.5 text-clay-deep" />
-              <span>Continuer avec Keycloak SSO</span>
             </button>
 
             <p className="mt-auto pt-2 text-center text-[12.5px] text-ink-soft">

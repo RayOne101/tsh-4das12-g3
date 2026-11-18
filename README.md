@@ -89,12 +89,13 @@ services déjà lancés. `./stop-local.sh` arrête les trois services Spring
 | Compte | Mot de passe | Accès |
 |---|---|---|
 | `etudiant@tsh.tn` | `etudiant123` | Application étudiante (`/connexion`) |
-| `admin` | `admin123` | Console d'administration (`/admin/connexion`) |
+| `admin@tsh.tn` | `admin123` | Console d'administration (`/admin/connexion`) |
 
-La connexion du frontend passe réellement par Keycloak (Authorization Code +
-PKCE) dès que `VITE_KEYCLOAK_URL` est renseigné dans `Frontend/.env`
-(voir `Frontend/.env.example`). Seuls le profil et la photo passent par l'API ;
-les autres pages affichent encore les données de démonstration.
+Les formulaires de connexion envoient les identifiants à Keycloak (grant
+`password`), qui renvoie le JWT et les rôles : l'utilisateur reste sur les pages
+TSH, sans écran Keycloak. C'est actif dès que `VITE_KEYCLOAK_URL` est renseigné
+dans `Frontend/.env` (voir `Frontend/.env.example`). Seuls le profil et la photo
+passent par l'API ; les autres pages affichent encore les données de démonstration.
 
 ### Documentation par composant
 

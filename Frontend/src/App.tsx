@@ -15,7 +15,6 @@ import { Marketplace } from '@/pages/Marketplace'
 import { Transport } from '@/pages/Transport'
 import { HowItWorks } from '@/pages/HowItWorks'
 import { Login } from '@/pages/Login'
-import { AuthCallback } from '@/pages/AuthCallback'
 import { SessionExpired } from '@/pages/SessionExpired'
 import { Onboarding } from '@/pages/Onboarding'
 import { NotFound } from '@/pages/NotFound'
@@ -26,7 +25,6 @@ import { Contracts } from '@/pages/app/Contracts'
 import { Profile } from '@/pages/app/Profile'
 import { Admin } from '@/pages/admin/Admin'
 import { AdminLogin } from '@/pages/admin/AdminLogin'
-import { AdminCallback } from '@/pages/admin/AdminCallback'
 
 export default function App() {
   return (
@@ -46,7 +44,6 @@ export default function App() {
         </Route>
 
         <Route path="/connexion" element={<Login />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/session-expiree" element={<SessionExpired />} />
         <Route path="/bienvenue" element={<Onboarding />} />
 
@@ -69,7 +66,6 @@ export default function App() {
 
         {/* Console d'administration : interface et pages separees de l'app etudiante. */}
         <Route path="/admin/connexion" element={<AdminLogin />} />
-        <Route path="/admin/callback" element={<AdminCallback />} />
         <Route
           path="/admin"
           element={

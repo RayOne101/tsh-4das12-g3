@@ -70,8 +70,10 @@ Les rôles sont lus depuis le claim `realm_access.roles` du JWT.
 
 ### Connexion depuis le frontend
 
-Le frontend utilise le flow Authorization Code + PKCE : aucun secret n'est
-embarqué dans le navigateur. Il est activé par `Frontend/.env` :
+Les pages de connexion de l'application restent celles de TSH : les identifiants
+saisis sont envoyés au realm avec le grant `password` (clients publics, aucun
+secret dans le navigateur) et Keycloak renvoie le JWT. Aucune redirection vers la
+page de connexion Keycloak. Il est activé par `Frontend/.env` :
 
 ```dotenv
 VITE_KEYCLOAK_URL=http://localhost:8085
@@ -85,11 +87,16 @@ L'application étudiante ouvre une session avec `tsh-web`. La console
 realm `ROLE_ADMIN`. Sans `VITE_KEYCLOAK_URL`, le frontend retombe sur une
 connexion simulée (mode démonstration).
 
+Le grant `password` est déprécié par OAuth 2.1 : il est acceptable ici parce que
+le client est une application de première main, mais une application publique en
+production devrait revenir au flow Authorization Code + PKCE (encore activé sur
+`tsh-web` avec son URI de retour `http://localhost:5173/*`).
+
 ### Comptes de développement
 
 | Username | Mot de passe | Rôle |
 |---|---|---|
-| `admin` | `admin123` | `ROLE_ADMIN` |
+| `admin@tsh.tn` | `admin123` | `ROLE_ADMIN` |
 | `etudiant@tsh.tn` | `etudiant123` | `ROLE_USER` |
 
 Le username est l'email. L'inscription libre est activée et attribue `ROLE_USER`.

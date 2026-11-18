@@ -23,7 +23,7 @@ public record UtilisateurResponse(
         @Schema(description = "Role applicatif", example = "ROLE_USER")
         RoleType role,
 
-        @Schema(description = "Compte actif ou suspendu", example = "true")
+        @Schema(description = "Profil verifie", example = "true")
         Boolean verifie,
 
         @Schema(description = "URL de la photo de profil", nullable = true,

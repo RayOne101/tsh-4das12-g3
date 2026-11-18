@@ -87,6 +87,15 @@ class UtilisateurApiIntegrationTest {
     }
 
     @Test
+    void suspendedUserCannotReadProfile() throws Exception {
+        persist("kc-user", "user@tsh.tn", false);
+
+        mockMvc.perform(get("/api/utilisateurs/me")
+                        .with(token("kc-user", "user@tsh.tn", "ROLE_USER")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void studentCannotListUsers() throws Exception {
         mockMvc.perform(get("/api/utilisateurs")
                         .with(token("kc-user", "user@tsh.tn", "ROLE_USER")))

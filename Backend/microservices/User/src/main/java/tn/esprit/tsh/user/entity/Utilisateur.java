@@ -18,7 +18,7 @@ public class Utilisateur {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "keycloak_id")
+    @Column(name = "keycloak_id", unique = true)
     private String keycloakId;
 
     @Column(unique = true)

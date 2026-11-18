@@ -92,7 +92,7 @@ Les erreurs utilisent le format RFC 7807 `application/problem+json`.
 |---|---|
 | `400` | Validation, JSON invalide, UUID invalide |
 | `401` | JWT absent ou invalide |
-| `403` | Rôle insuffisant |
+| `403` | Rôle insuffisant, ou compte suspendu sur `/api/utilisateurs/me` |
 | `404` | Utilisateur introuvable |
 | `409` | Email ou téléphone déjà utilisé |
 
@@ -118,10 +118,10 @@ Exemple de validation :
 mvn test
 ```
 
-18 tests :
+19 tests :
 
 - tests unitaires : mapper, validation, service, converter de rôles Keycloak
-- tests d'intégration MockMvc : `401`, `403`, `/me`, PATCH admin, `400`, `404`, `409`
+- tests d'intégration MockMvc : `401`, `403`, `/me`, compte suspendu, PATCH admin, `400`, `404`, `409`
 
 Les tests d'intégration utilisent H2 en mémoire (`application-test.properties`) et
 mockent `KeycloakAdminService`.

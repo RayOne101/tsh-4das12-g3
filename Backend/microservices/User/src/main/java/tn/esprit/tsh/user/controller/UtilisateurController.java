@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -44,11 +45,9 @@ public class UtilisateurController {
     @Operation(summary = "Profil de l'utilisateur connecte")
     @ApiResponse(responseCode = "200", description = "Profil trouve")
     @ApiResponse(responseCode = "404", description = "Utilisateur introuvable")
+    @ApiResponse(responseCode = "403", description = "Compte suspendu")
     public ResponseEntity<UtilisateurResponse> getProfil(@AuthenticationPrincipal Jwt jwt) {
-        Utilisateur user = utilisateurService
-                .trouverOuCreerParKeycloakId(jwt.getSubject(), jwt.getClaimAsString("email"), nom(jwt), role(jwt))
-                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur", jwt.getSubject()));
-        return ResponseEntity.ok(UtilisateurMapper.toResponse(user));
+        return ResponseEntity.ok(UtilisateurMapper.toResponse(profilConnecte(jwt)));
     }
 
     @PutMapping("/me")
@@ -59,10 +58,18 @@ public class UtilisateurController {
     @ApiResponse(responseCode = "409", description = "Email ou telephone deja utilise")
     public ResponseEntity<UtilisateurResponse> mettreAJourProfil(@AuthenticationPrincipal Jwt jwt,
                                                                  @Valid @RequestBody ProfilUpdateRequest dto) {
+        return ResponseEntity.ok(utilisateurService.mettreAJourProfil(profilConnecte(jwt).getId(), dto));
+    }
+
+    /** Profil lie au JWT. Un compte suspendu par un admin garde un token valide : on le refuse ici. */
+    private Utilisateur profilConnecte(Jwt jwt) {
         Utilisateur user = utilisateurService
                 .trouverOuCreerParKeycloakId(jwt.getSubject(), jwt.getClaimAsString("email"), nom(jwt), role(jwt))
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur", jwt.getSubject()));
-        return ResponseEntity.ok(utilisateurService.mettreAJourProfil(user.getId(), dto));
+        if (Boolean.FALSE.equals(user.getVerifie())) {
+            throw new AccessDeniedException("Compte suspendu");
+        }
+        return user;
     }
 
     private static String nom(Jwt jwt) {

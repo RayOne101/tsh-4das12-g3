@@ -44,7 +44,27 @@ tsh/
 ```
 
 > Seul le microservice `User` est implémenté à ce stade. Les autres dossiers
-> contiennent les skeletons des microservices à venir.
+> contiennent les skeletons des microservices à venir : ils démarrent, sont
+> découverts par Eureka et exposent leur port, mais n'ont pas encore de logique
+> métier ni de base de données.
+
+## Ports
+
+| Service | Port |
+|---|---|
+| Eureka | 8761 |
+| Gateway | 8083 |
+| Keycloak | 8085 |
+| User | 8762 |
+| Housing | 8763 |
+| Colocation | 8764 |
+| Contract | 8765 |
+| Communication | 8766 |
+| Review | 8767 |
+| Marketplace | 8768 |
+| Transport | 8769 |
+| Frontend (Vite) | 5173 |
+| PostgreSQL | 5433 |
 
 ## Démarrage
 

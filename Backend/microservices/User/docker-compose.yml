@@ -47,23 +47,25 @@ services:
       postgres-user:
         condition: service_healthy
 
+  # Les images officielles minio/minio ne sont plus publiees sur Docker Hub :
+  # on utilise l'archive Bitnami, compatible S3, en developpement local.
   minio:
-    image: minio/minio:RELEASE.2024-10-13T13-34-11Z
+    image: bitnamilegacy/minio:latest
     container_name: tsh-minio
     restart: always
-    command: ["server", "/data", "--console-address", ":9001"]
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_DEFAULT_BUCKETS: tsh-avatars
     ports:
       - "9000:9000"
       - "9001:9001"
     volumes:
-      - minio_data:/data
+      - minio_data:/bitnami/minio/data
 
-  # Cree le bucket des photos de profil et le rend lisible (dev uniquement).
+  # Rend le bucket des photos de profil lisible (dev uniquement).
   minio-init:
-    image: minio/mc:latest
+    image: bitnamilegacy/minio-client:latest
     container_name: tsh-minio-init
     depends_on:
       - minio

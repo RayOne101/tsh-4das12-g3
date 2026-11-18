@@ -9,6 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -48,6 +49,12 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleUnreadable(HttpMessageNotReadableException ex) {
         return problem(HttpStatus.BAD_REQUEST, "Malformed request",
                 "Le corps de la requete est manquant ou n'est pas un JSON valide");
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ProblemDetail handleUploadTooLarge(MaxUploadSizeExceededException ex) {
+        return problem(HttpStatus.PAYLOAD_TOO_LARGE, "Image trop lourde",
+                "La photo de profil depasse la taille maximale autorisee (2 Mo)");
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)

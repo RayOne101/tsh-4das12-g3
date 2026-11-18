@@ -31,6 +31,8 @@ docker compose up -d
 | pgweb User | http://localhost:8082 |
 | pgweb Keycloak | http://localhost:8086 |
 | Keycloak | http://localhost:8085 |
+| MinIO (API) | http://localhost:9000 |
+| MinIO (console) | http://localhost:9001 |
 
 Les valeurs par défaut suffisent : `postgres` / `postgres`, admin Keycloak `admin` / `admin`.
 Keycloak utilise la base `keycloak` sur le même serveur PostgreSQL, et non la base `tsh_users`.

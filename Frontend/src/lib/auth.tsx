@@ -7,7 +7,6 @@ export interface Session {
   name: string
   email: string
   image: string
-  suspended: boolean
   expiresAt: number
 }
 
@@ -17,7 +16,6 @@ interface AuthContextValue {
   login: (role?: Role, customData?: Partial<Session>) => void
   logout: () => void
   switchRole: (role: Role) => void
-  setSuspended: (value: boolean) => void
   expire: () => void
 }
 
@@ -54,7 +52,6 @@ function readSession(): Session | null {
     if (!raw) return null
     const parsed = JSON.parse(raw) as Session
     if (!parsed?.role || parsed.role === 'guest') return null
-    if (parsed.suspended) return parsed
     if (parsed.expiresAt && parsed.expiresAt < Date.now()) return null
     return parsed
   } catch {
@@ -77,7 +74,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       role: safeRole,
       ...profile,
       ...(customData ?? {}),
-      suspended: false,
       // Mirrors the 15-minute Keycloak access token used by the real stack.
       expiresAt: Date.now() + 15 * 60 * 1000,
     })
@@ -92,19 +88,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return
       }
       const profile = profiles[role]
-      setSession((current) => ({
+      setSession({
         role,
         ...profile,
-        suspended: current?.suspended ?? false,
         expiresAt: Date.now() + 15 * 60 * 1000,
-      }))
+      })
     },
     [],
   )
-
-  const setSuspended = useCallback((value: boolean) => {
-    setSession((current) => (current ? { ...current, suspended: value } : current))
-  }, [])
 
   const expire = useCallback(() => {
     setSession((current) =>
@@ -114,15 +105,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<AuthContextValue>(
     () => ({
-      session: session && !session.suspended ? session : session,
-      isAuthenticated: Boolean(session) && !session?.suspended,
+      session,
+      isAuthenticated: Boolean(session),
       login,
       logout,
       switchRole,
-      setSuspended,
       expire,
     }),
-    [session, login, logout, switchRole, setSuspended, expire],
+    [session, login, logout, switchRole, expire],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -3,6 +3,8 @@ import { Navigate, Route, Routes, useLocation, useNavigate, useSearchParams } fr
 import { PublicLayout } from '@/components/Layouts'
 import { AppShell } from '@/components/AppShell'
 import { RequireAuth } from '@/components/RequireAuth'
+import { AdminShell } from '@/components/AdminShell'
+import { RequireAdmin } from '@/components/RequireAdmin'
 import { ScrollToTop } from '@/components/Layouts'
 import { useAuth } from '@/lib/auth'
 import type { Role } from '@/lib/data'
@@ -14,7 +16,6 @@ import { Transport } from '@/pages/Transport'
 import { HowItWorks } from '@/pages/HowItWorks'
 import { Login } from '@/pages/Login'
 import { AuthCallback } from '@/pages/AuthCallback'
-import { Suspended } from '@/pages/Suspended'
 import { SessionExpired } from '@/pages/SessionExpired'
 import { Onboarding } from '@/pages/Onboarding'
 import { NotFound } from '@/pages/NotFound'
@@ -23,7 +24,8 @@ import { MyListings } from '@/pages/app/MyListings'
 import { ListingWizard } from '@/pages/app/ListingWizard'
 import { Contracts } from '@/pages/app/Contracts'
 import { Profile } from '@/pages/app/Profile'
-import { Admin } from '@/pages/app/Admin'
+import { Admin } from '@/pages/admin/Admin'
+import { AdminLogin } from '@/pages/admin/AdminLogin'
 
 export default function App() {
   return (
@@ -44,7 +46,6 @@ export default function App() {
 
         <Route path="/connexion" element={<Login />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/compte-suspendu" element={<Suspended />} />
         <Route path="/session-expiree" element={<SessionExpired />} />
         <Route path="/bienvenue" element={<Onboarding />} />
 
@@ -63,7 +64,19 @@ export default function App() {
           <Route path="annonces/nouvelle" element={<ListingWizard />} />
           <Route path="contrats" element={<Contracts />} />
           <Route path="profil" element={<Profile />} />
-          <Route path="admin" element={<Admin />} />
+        </Route>
+
+        {/* Console d'administration : interface et pages separees de l'app etudiante. */}
+        <Route path="/admin/connexion" element={<AdminLogin />} />
+        <Route
+          path="/admin"
+          element={
+            <RequireAdmin>
+              <AdminShell />
+            </RequireAdmin>
+          }
+        >
+          <Route index element={<Admin />} />
         </Route>
       </Routes>
     </>

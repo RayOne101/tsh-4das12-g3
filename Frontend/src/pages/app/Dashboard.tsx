@@ -4,7 +4,6 @@ import {
   ArrowUpRight,
   BadgeCheck,
   CalendarDays,
-  Check,
   Clock3,
   CreditCard,
   Eye,
@@ -13,23 +12,19 @@ import {
   Inbox,
   MessageSquare,
   Plus,
-  ShieldCheck,
   Sparkles,
-  Star,
   TrendingUp,
-  Users,
 } from 'lucide-react'
 import { PageHeader, Panel, ViewAll } from '@/components/AppBits'
 import { ButtonLink } from '@/components/ButtonLink'
 import { ListingCard } from '@/components/ListingCard'
 import { Progress, StatCard, Verified } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
-import { avatar, listings, photo, TND } from '@/lib/data'
+import { avatar, listings, TND } from '@/lib/data'
 
 export function Dashboard() {
   const { session } = useAuth()
   if (!session) return null
-  if (session.role === 'admin') return <AdminDashboard />
   if (session.role === 'owner') return <OwnerDashboard />
   return <StudentDashboard />
 }
@@ -342,94 +337,3 @@ function OwnerDashboard() {
   )
 }
 
-function AdminDashboard() {
-  return (
-    <>
-      <PageHeader
-        eyebrow="Administration · modération"
-        title={
-          <>
-            Vue d’ensemble
-            <br />
-            <span className="font-serif italic text-clay-deep">de la plateforme.</span>
-          </>
-        }
-        description="3 annonces en attente, 2 signalements ouverts et 4 comptes suspendus à réexaminer."
-        actions={
-          <ButtonLink to="/app/admin" variant="ink" className="btn-sm">
-            <ShieldCheck className="size-3.5" />
-            Ouvrir la modération
-          </ButtonLink>
-        }
-      />
-
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <StatCard label="En attente" value="3" hint="délai moyen 4 h" icon={<Clock3 className="size-4" />} />
-        <StatCard label="Signalements" value="2" hint="1 prioritaire" icon={<Inbox className="size-4" />} />
-        <StatCard label="Utilisateurs" value="9 812" hint="+124 cette semaine" icon={<Users className="size-4" />} />
-        <StatCard label="Comptes suspendus" value="4" hint="2 recours déposés" icon={<ShieldCheck className="size-4" />} />
-      </div>
-
-      <div className="mt-4 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <Panel title="File de modération" action={<ViewAll to="/app/admin" label="Tout traiter" />}>
-          <div className="space-y-2">
-            {[
-              { title: 'Duplex 4 pièces proche du lac', city: 'Tunis', price: 1450, flags: ['Photos à vérifier'], image: photo('1600566753086-00f18fb6b3ea', 300) },
-              { title: 'Chambre étudiante meublée', city: 'Bizerte', price: 350, flags: ['Prix sous le marché'], image: photo('1522771739844-6a9f6d5f14af', 300) },
-              { title: 'Appartement 2 chambres, vue mer', city: 'Sousse', price: 1100, flags: [], image: photo('1560185007-cde436f6a4d0', 300) },
-            ].map((item) => (
-              <div key={item.title} className="flex items-center gap-3 rounded-xl border border-ink/[0.06] p-2.5">
-                <img src={item.image} alt="" className="size-12 rounded-lg object-cover" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[11.5px] font-semibold">{item.title}</p>
-                  <p className="text-[10px] text-ink-soft">{item.city} · {TND(item.price)}/mois</p>
-                  {item.flags.length > 0 && (
-                    <span className="mt-1 inline-block rounded-full bg-clay-soft px-1.5 py-0.5 text-[8.5px] font-semibold text-clay-deep">
-                      {item.flags[0]}
-                    </span>
-                  )}
-                </div>
-                <ArrowUpRight className="size-4 text-ink-soft" />
-              </div>
-            ))}
-          </div>
-        </Panel>
-
-        <Panel title="Activité récente">
-          <div className="space-y-3">
-            {[
-              { icon: Check, text: 'Annonce approuvée · Studio El Ghazala', time: 'il y a 12 min', tone: 'sage' },
-              { icon: ShieldCheck, text: 'Compte suspendu · slim.j@example.tn', time: 'il y a 1 h', tone: 'rust' },
-              { icon: FileSignature, text: 'Contrat signé · TSH-2026-0184', time: 'il y a 2 h', tone: 'neutral' },
-              { icon: Star, text: 'Nouvel avis 5★ · La Marsa', time: 'il y a 3 h', tone: 'clay' },
-            ].map((item, i) => (
-              <div key={i} className="flex items-start gap-2.5">
-                <span
-                  className={`mt-0.5 grid size-7 shrink-0 place-items-center rounded-full ${
-                    item.tone === 'sage'
-                      ? 'bg-sage-soft text-sage'
-                      : item.tone === 'rust'
-                        ? 'bg-rust-soft text-rust'
-                        : item.tone === 'clay'
-                          ? 'bg-clay-soft text-clay-deep'
-                          : 'bg-cream-deep text-ink-soft'
-                  }`}
-                >
-                  <item.icon className="size-3.5" />
-                </span>
-                <div>
-                  <p className="text-[11px] font-medium leading-snug">{item.text}</p>
-                  <p className="text-[9.5px] text-ink-soft">{item.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 rounded-xl bg-cream p-3 text-[10px] leading-relaxed text-ink-soft">
-            <span className="font-semibold text-ink">Sécurité :</span> la suspension passe par l’API
-            Admin Keycloak. Les jetons existants restent valides jusqu’à 15 minutes.
-          </div>
-        </Panel>
-      </div>
-    </>
-  )
-}

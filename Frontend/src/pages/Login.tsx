@@ -42,10 +42,7 @@ export function Login() {
     setTimeout(() => {
       let selectedRole: Role = 'user'
       let name = 'Utilisateur TSH'
-      if (email.includes('admin') || email.includes('sami')) {
-        selectedRole = 'admin'
-        name = 'Sami Modérateur'
-      } else if (email.includes('owner') || email.includes('amel') || email.includes('proprio')) {
+      if (email.includes('owner') || email.includes('amel') || email.includes('proprio')) {
         selectedRole = 'owner'
         name = 'Amel Ben Salah'
       } else {
@@ -75,13 +72,21 @@ export function Login() {
       {/* Top bar */}
       <div className="mx-auto flex w-full max-w-[80rem] items-center justify-between px-5 py-6 sm:px-8">
         <Brand />
-        <Link
-          to="/"
-          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-ink-soft transition hover:text-ink"
-        >
-          Retour au site
-          <ArrowUpRight className="size-3.5" />
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link
+            to="/admin/connexion"
+            className="text-[11.5px] font-medium text-ink-soft/80 transition hover:text-ink"
+          >
+            Espace administration
+          </Link>
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-ink-soft transition hover:text-ink"
+          >
+            Retour au site
+            <ArrowUpRight className="size-3.5" />
+          </Link>
+        </div>
       </div>
 
       {/* Centered content */}

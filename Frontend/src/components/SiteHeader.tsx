@@ -6,11 +6,10 @@ import {
   LogOut,
   Menu,
   MessageSquare,
-  ShieldCheck,
   User,
   X,
 } from 'lucide-react'
-import { useAuth, hasRole } from '@/lib/auth'
+import { useAuth } from '@/lib/auth'
 import { conversations } from '@/lib/data'
 import { cn } from '@/lib/utils'
 import { Brand } from '@/components/Brand'
@@ -32,7 +31,6 @@ export function SiteHeader() {
   const navigate = useNavigate()
   const userMenuRef = useRef<HTMLDivElement>(null)
 
-  const isAdmin = hasRole(session?.role, 'ROLE_ADMIN')
   const unreadMessages = conversations.reduce((acc, c) => acc + (c.unread ?? 0), 0)
 
   useEffect(() => {
@@ -154,7 +152,7 @@ export function SiteHeader() {
                       <p className="text-[13px] font-semibold text-ink">{session?.name}</p>
                       <p className="truncate text-[11px] text-ink-soft">{session?.email}</p>
                       <span className="mt-1.5 inline-block rounded-full bg-cream-deep px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-ink-soft">
-                        {isAdmin ? 'Administrateur' : 'Membre TSH'}
+                        Membre TSH
                       </span>
                     </div>
 
@@ -168,16 +166,6 @@ export function SiteHeader() {
                         Mon profil & Sécurité
                       </Link>
 
-                      {isAdmin && (
-                        <Link
-                          to="/app/admin"
-                          onClick={() => setUserMenuOpen(false)}
-                          className="flex items-center gap-2.5 rounded-xl bg-rust-soft/50 px-3 py-2 text-[12.5px] font-medium text-rust transition hover:bg-rust-soft"
-                        >
-                          <ShieldCheck className="size-4" />
-                          Modération utilisateurs
-                        </Link>
-                      )}
                     </div>
 
                     <div className="border-t border-ink/[0.06] pt-1">
@@ -253,15 +241,6 @@ export function SiteHeader() {
                   <span>Contrats</span>
                   <FileText className="size-4" />
                 </Link>
-                {isAdmin && (
-                  <Link
-                    to="/app/admin"
-                    className="flex items-center justify-between rounded-2xl bg-rust/30 px-4 py-3 text-sm font-semibold text-white"
-                  >
-                    <span>Modération utilisateurs</span>
-                    <ShieldCheck className="size-4" />
-                  </Link>
-                )}
                 <button
                   type="button"
                   onClick={handleLogout}

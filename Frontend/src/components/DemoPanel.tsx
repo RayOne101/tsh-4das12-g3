@@ -9,12 +9,11 @@ import { cn } from '@/lib/utils'
 const roles: { value: Role; label: string }[] = [
   { value: 'guest', label: 'Visiteur' },
   { value: 'user', label: 'Membre TSH' },
-  { value: 'admin', label: 'Admin' },
 ]
 
 export function DemoPanel() {
   const [open, setOpen] = useState(false)
-  const { session, switchRole, setSuspended, expire } = useAuth()
+  const { session, switchRole, expire } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
 
@@ -48,7 +47,6 @@ export function DemoPanel() {
                 type="button"
                 onClick={() => {
                   switchRole(role.value)
-                  if (role.value !== 'guest') setSuspended(false)
                   toast(`Rôle simulé : ${role.label}`, 'info')
                 }}
                 className={cn(
@@ -68,19 +66,6 @@ export function DemoPanel() {
           <button
             type="button"
             onClick={() => {
-              setSuspended(true)
-              setOpen(false)
-              navigate('/compte-suspendu')
-            }}
-            className="flex w-full items-center justify-between rounded-xl px-1 py-2 text-[12.5px] font-medium text-ink-soft transition hover:text-ink"
-          >
-            Simuler un compte suspendu
-            <span className="size-2 rounded-full bg-rust" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
               expire()
               setOpen(false)
               navigate('/session-expiree')
@@ -95,7 +80,6 @@ export function DemoPanel() {
             type="button"
             onClick={() => {
               switchRole('user')
-              setSuspended(false)
               toast('Démo réinitialisée', 'success')
             }}
             className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-cream px-2 py-2.5 text-[12px] font-semibold text-ink transition hover:bg-cream-deep"

@@ -6,11 +6,9 @@ import {
   Search,
   ShieldAlert,
   ShieldCheck,
-  UserX,
 } from 'lucide-react'
-import { LockedArea, PageHeader, Panel } from '@/components/AppBits'
+import { PageHeader, Panel } from '@/components/AppBits'
 import { StatCard } from '@/components/ui'
-import { useAuth, hasRole } from '@/lib/auth'
 import { adminUsers } from '@/lib/data'
 import { useToast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
@@ -18,13 +16,10 @@ import { cn } from '@/lib/utils'
 type Tab = 'utilisateurs' | 'signalements'
 
 export function Admin() {
-  const { session } = useAuth()
   const { toast } = useToast()
   const [tab, setTab] = useState<Tab>('utilisateurs')
-  const [users, setUsers] = useState(adminUsers)
+  const [users] = useState(adminUsers)
   const [query, setQuery] = useState('')
-
-  const isAdmin = hasRole(session?.role, 'ROLE_ADMIN')
 
   const filteredUsers = useMemo(
     () =>
@@ -34,43 +29,12 @@ export function Admin() {
     [users, query],
   )
 
-  if (!isAdmin) {
-    return (
-      <LockedArea
-        title="Accès réservé à la modération"
-        description="Cette section permet de gérer et suspendre des comptes utilisateurs. Elle appelle l’API Admin Keycloak et n’est accessible qu’aux administrateurs (ROLE_ADMIN)."
-        required="ROLE_ADMIN"
-      />
-    )
-  }
-
-  const toggleUser = (id: string) => {
-    const target = users.find((user) => user.id === id)
-    setUsers((current) =>
-      current.map((user) =>
-        user.id === id
-          ? {
-              ...user,
-              status: user.status === 'Suspendu' ? 'Actif' : 'Suspendu',
-              verified: user.status === 'Suspendu' ? user.verified : false,
-            }
-          : user,
-      ),
-    )
-    toast(
-      target?.status === 'Suspendu'
-        ? 'Compte réactivé — connexion rétablie'
-        : 'Compte suspendu — Keycloak setEnabled(false)',
-      target?.status === 'Suspendu' ? 'success' : 'info',
-    )
-  }
-
   return (
     <>
       <PageHeader
         eyebrow="Administration"
         title="Gestion des utilisateurs & Sécurité"
-        description="Gestion des comptes de la communauté, suspension et réactivation via Keycloak et traitement des signalements."
+        description="Consultation des comptes de la communauté et traitement des signalements."
         actions={
           <button
             type="button"
@@ -86,7 +50,6 @@ export function Admin() {
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <StatCard label="Total comptes" value={String(users.length)} hint="inscrits" icon={<ShieldCheck className="size-4" />} />
         <StatCard label="Comptes actifs" value={String(users.filter((u) => u.status === 'Actif').length)} hint="opérationnels" icon={<Check className="size-4" />} />
-        <StatCard label="Comptes suspendus" value={String(users.filter((u) => u.status === 'Suspendu').length)} hint="bloqués Keycloak" icon={<UserX className="size-4" />} />
         <StatCard label="Signalements" value="2" hint="1 prioritaire" icon={<ShieldAlert className="size-4" />} />
       </div>
 
@@ -143,8 +106,7 @@ export function Admin() {
                   <th className="px-3 py-2.5 font-semibold">Vérifié</th>
                   <th className="px-3 py-2.5 font-semibold">Statut</th>
                   <th className="px-3 py-2.5 font-semibold">Inscription</th>
-                  <th className="px-3 py-2.5 font-semibold">Annonces</th>
-                  <th className="px-4 py-2.5 text-right font-semibold">Action</th>
+                  <th className="px-4 py-2.5 text-right font-semibold">Annonces</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink/[0.05]">
@@ -181,21 +143,7 @@ export function Admin() {
                     <td className="px-3 py-3 text-[10px] text-ink-soft">
                       {new Date(user.joined).toLocaleDateString('fr-FR')}
                     </td>
-                    <td className="px-3 py-3 text-[10px] text-ink-soft">{user.listings}</td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => toggleUser(user.id)}
-                        className={cn(
-                          'rounded-full border px-2.5 py-1 text-[9.5px] font-semibold transition',
-                          user.status === 'Suspendu'
-                            ? 'border-sage/30 text-sage hover:bg-sage-soft'
-                            : 'border-rust/30 text-rust hover:bg-rust-soft',
-                        )}
-                      >
-                        {user.status === 'Suspendu' ? 'Réactiver' : 'Suspendre'}
-                      </button>
-                    </td>
+                    <td className="px-4 py-3 text-right text-[10px] text-ink-soft">{user.listings}</td>
                   </tr>
                 ))}
               </tbody>
@@ -205,10 +153,8 @@ export function Admin() {
           <div className="flex items-start gap-2 border-t border-ink/[0.06] bg-cream/60 px-4 py-3">
             <ShieldAlert className="mt-0.5 size-3.5 shrink-0 text-clay-deep" />
             <p className="text-[9.5px] leading-relaxed text-ink-soft">
-              <strong className="text-ink">Effet réel :</strong> la suspension appelle{' '}
-              <span className="font-mono">PUT /admin/realms/tsh/users/&#123;id&#125;</span> avec{' '}
-              <span className="font-mono">enabled=false</span>. Le compte ne peut plus se connecter,
-              mais son jeton courant reste valide jusqu’à 15 minutes.
+              Les comptes proviennent de Keycloak : la console les affiche en lecture seule pour
+              l’instant, les actions de modération seront branchées sur l’API admin plus tard.
             </p>
           </div>
         </Panel>

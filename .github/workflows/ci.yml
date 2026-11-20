@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main, User]
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  backend:
+    name: Backend (Maven)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Build and test
+        working-directory: Backend
+        run: mvn -B verify
+
+  frontend:
+    name: Frontend (Vite)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+      - name: Install
+        working-directory: Frontend
+        run: npm ci
+      - name: Typecheck
+        working-directory: Frontend
+        run: npm run lint
+      - name: Build
+        working-directory: Frontend
+        run: npm run build

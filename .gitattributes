@@ -1,0 +1,2 @@
+# Scripts executables : conserver les fins de ligne Unix, meme sous Windows.
+*.sh text eol=lf

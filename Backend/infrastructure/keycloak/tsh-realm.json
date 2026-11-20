@@ -1,0 +1,129 @@
+{
+  "realm": "tsh",
+  "displayName": "Trusted Student Housing",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "accessTokenLifespan": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "roles": {
+    "realm": [
+      {
+        "name": "ROLE_USER",
+        "description": "Utilisateur TSH"
+      },
+      {
+        "name": "ROLE_ADMIN",
+        "description": "Administrateur TSH"
+      }
+    ]
+  },
+  "defaultRole": {
+    "name": "ROLE_USER",
+    "composite": false,
+    "clientRole": false
+  },
+  "clients": [
+    {
+      "clientId": "tsh-web",
+      "name": "TSH Frontend",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:5173/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5173"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/*"
+      }
+    },
+    {
+      "clientId": "tsh-admin-web",
+      "name": "TSH Console admin",
+      "description": "Console d'administration, interface separee de l'app etudiante",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:5173/admin/callback"
+      ],
+      "webOrigins": [
+        "http://localhost:5173"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/*"
+      }
+    },
+    {
+      "clientId": "tsh-cli",
+      "name": "TSH CLI / tests (password grant)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false
+    }
+  ],
+  "users": [
+    {
+      "username": "admin@tsh.tn",
+      "enabled": true,
+      "email": "admin@tsh.tn",
+      "emailVerified": true,
+      "firstName": "Admin",
+      "lastName": "TSH",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "ROLE_USER",
+        "ROLE_ADMIN"
+      ],
+      "requiredActions": []
+    },
+    {
+      "username": "etudiant@tsh.tn",
+      "enabled": true,
+      "email": "etudiant@tsh.tn",
+      "emailVerified": true,
+      "firstName": "Etudiant",
+      "lastName": "Test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "etudiant123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "ROLE_USER"
+      ],
+      "requiredActions": []
+    }
+  ]
+}

@@ -38,10 +38,32 @@
       "publicClient": true,
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
+      "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": false,
       "redirectUris": [
         "http://localhost:5173/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5173"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/*"
+      }
+    },
+    {
+      "clientId": "tsh-admin-web",
+      "name": "TSH Console admin",
+      "description": "Console d'administration, interface separee de l'app etudiante",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:5173/admin/callback"
       ],
       "webOrigins": [
         "http://localhost:5173"
@@ -61,23 +83,11 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": false
-    },
-    {
-      "clientId": "tsh-user-service",
-      "name": "TSH User Service (Keycloak Admin API)",
-      "enabled": true,
-      "protocol": "openid-connect",
-      "publicClient": false,
-      "secret": "change-me",
-      "standardFlowEnabled": false,
-      "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
-      "serviceAccountsEnabled": true
     }
   ],
   "users": [
     {
-      "username": "admin",
+      "username": "admin@tsh.tn",
       "enabled": true,
       "email": "admin@tsh.tn",
       "emailVerified": true,
@@ -114,18 +124,6 @@
         "ROLE_USER"
       ],
       "requiredActions": []
-    },
-    {
-      "username": "service-account-tsh-user-service",
-      "enabled": true,
-      "serviceAccountClientId": "tsh-user-service",
-      "clientRoles": {
-        "realm-management": [
-          "manage-users",
-          "view-users",
-          "query-users"
-        ]
-      }
     }
   ]
 }

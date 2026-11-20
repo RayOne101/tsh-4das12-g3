@@ -15,16 +15,49 @@ public class GatewayApplication {
         SpringApplication.run(GatewayApplication.class, args);
     }
 
-    /**
-     * Point d'entree unique.
-     * "lb://USER" : le Gateway demande l'adresse du service USER a Eureka.
-     */
     @Bean
     public RouteLocator gatewayRoutes(RouteLocatorBuilder builder) {
         return builder.routes()
+                // Microservice User (Profil, roles, admin)
                 .route("user-service", r -> r
-                        .path("/api/utilisateurs/**", "/api/admin/**")
+                        .path("/api/utilisateurs/**", "/api/users/**", "/api/admin/**")
                         .uri("lb://USER"))
+
+                // Microservice Housing (Annonces logements, recherche, favoris)
+                .route("housing-service", r -> r
+                        .path("/api/logements/**", "/api/housing/**")
+                        .uri("lb://HOUSING"))
+
+                // Microservice Colocation (Annonces colocation, profils colocataires, matching)
+                .route("colocation-service", r -> r
+                        .path("/api/colocations/**", "/api/colocation/**")
+                        .uri("lb://COLOCATION"))
+
+                // Microservice Contract (Contrats de bail, generation PDF, paiements)
+                .route("contract-service", r -> r
+                        .path("/api/contrats/**", "/api/contracts/**")
+                        .uri("lb://CONTRACT"))
+
+                // Microservice Communication (Messagerie instantanee, notifications)
+                .route("communication-service", r -> r
+                        .path("/api/messages/**", "/api/communication/**", "/ws/**")
+                        .uri("lb://COMMUNICATION"))
+
+                // Microservice Review (Avis, notes, reclamations)
+                .route("review-service", r -> r
+                        .path("/api/avis/**", "/api/reviews/**")
+                        .uri("lb://REVIEW"))
+
+                // Microservice Marketplace (Meubles d'occasion)
+                .route("marketplace-service", r -> r
+                        .path("/api/meubles/**", "/api/marketplace/**")
+                        .uri("lb://MARKETPLACE"))
+
+                // Microservice Transport (Demenagement, transporteurs etudiants)
+                .route("transport-service", r -> r
+                        .path("/api/transports/**", "/api/transport/**", "/api/demenagement/**")
+                        .uri("lb://TRANSPORT"))
+
                 .build();
     }
 }

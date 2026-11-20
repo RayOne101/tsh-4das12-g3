@@ -1,23 +1,42 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { Role } from './data'
 import { avatar } from './data'
+import { setAccessToken } from './api'
+import {
+  AUTH_ENABLED,
+  endSession,
+  isAdmin,
+  loadTokens,
+  refreshTokens,
+  signInWithPassword,
+  storeTokens,
+  type AuthTarget,
+  type Tokens,
+} from './oidc'
 
 export interface Session {
   role: Role
   name: string
   email: string
   image: string
-  suspended: boolean
   expiresAt: number
 }
 
 interface AuthContextValue {
   session: Session | null
   isAuthenticated: boolean
+  /** true si la connexion reelle Keycloak est configuree (VITE_KEYCLOAK_URL). */
+  authEnabled: boolean
   login: (role?: Role, customData?: Partial<Session>) => void
+  /** Verifie les identifiants aupres de Keycloak et ouvre la session. */
+  signIn: (
+    target: AuthTarget,
+    username: string,
+    password: string,
+    options?: { requireAdmin?: boolean },
+  ) => Promise<Tokens>
   logout: () => void
   switchRole: (role: Role) => void
-  setSuspended: (value: boolean) => void
   expire: () => void
 }
 
@@ -54,7 +73,6 @@ function readSession(): Session | null {
     if (!raw) return null
     const parsed = JSON.parse(raw) as Session
     if (!parsed?.role || parsed.role === 'guest') return null
-    if (parsed.suspended) return parsed
     if (parsed.expiresAt && parsed.expiresAt < Date.now()) return null
     return parsed
   } catch {
@@ -62,67 +80,136 @@ function readSession(): Session | null {
   }
 }
 
+/** Traduit les jetons Keycloak en session affichee par l'interface. */
+function sessionFromTokens(tokens: Tokens): Session {
+  const claims = tokens.claims
+  const name =
+    claims.name ||
+    [claims.given_name, claims.family_name].filter(Boolean).join(' ') ||
+    claims.preferred_username ||
+    'Utilisateur TSH'
+
+  return {
+    role: isAdmin(tokens) ? 'admin' : 'student',
+    name,
+    email: claims.email ?? claims.preferred_username ?? '',
+    image: claims.picture ?? avatar(44),
+    expiresAt: tokens.expiresAt,
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(() => readSession())
+  const [demoSession, setDemoSession] = useState<Session | null>(() =>
+    AUTH_ENABLED ? null : readSession(),
+  )
+  const [tokens, setTokens] = useState<Tokens | null>(() => (AUTH_ENABLED ? loadTokens() : null))
+
+  // Le jeton d'acces est lu par lib/api.ts a chaque appel.
+  useEffect(() => {
+    setAccessToken(tokens?.accessToken ?? null)
+  }, [tokens])
 
   useEffect(() => {
-    if (session) localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
+    if (AUTH_ENABLED) return
+    if (demoSession) localStorage.setItem(STORAGE_KEY, JSON.stringify(demoSession))
     else localStorage.removeItem(STORAGE_KEY)
-  }, [session])
+  }, [demoSession])
+
+  // Renouvelle le jeton une minute avant expiration (duree Keycloak : 15 min).
+  useEffect(() => {
+    if (!tokens) return
+    const delay = Math.max(tokens.expiresAt - Date.now() - 60_000, 0)
+    const timer = window.setTimeout(async () => {
+      const refreshed = await refreshTokens(tokens)
+      setTokens(refreshed)
+      if (!refreshed) storeTokens(null)
+    }, delay)
+    return () => window.clearTimeout(timer)
+  }, [tokens])
 
   const login = useCallback((role: Role = 'student', customData?: Partial<Session>) => {
+    if (AUTH_ENABLED) return
     const safeRole = role === 'guest' ? 'student' : role
     const profile = profiles[safeRole]
-    setSession({
+    setDemoSession({
       role: safeRole,
       ...profile,
       ...(customData ?? {}),
-      suspended: false,
       // Mirrors the 15-minute Keycloak access token used by the real stack.
       expiresAt: Date.now() + 15 * 60 * 1000,
     })
   }, [])
 
-  const logout = useCallback(() => setSession(null), [])
-
-  const switchRole = useCallback(
-    (role: Role) => {
-      if (role === 'guest') {
-        setSession(null)
-        return
+  const signIn = useCallback(
+    async (
+      target: AuthTarget,
+      username: string,
+      password: string,
+      options?: { requireAdmin?: boolean },
+    ) => {
+      const next = await signInWithPassword(target, username, password)
+      if (options?.requireAdmin && !isAdmin(next)) {
+        storeTokens(null)
+        setTokens(null)
+        throw new Error('ROLE_ADMIN requis')
       }
-      const profile = profiles[role]
-      setSession((current) => ({
-        role,
-        ...profile,
-        suspended: current?.suspended ?? false,
-        expiresAt: Date.now() + 15 * 60 * 1000,
-      }))
+      setTokens(next)
+      return next
     },
     [],
   )
 
-  const setSuspended = useCallback((value: boolean) => {
-    setSession((current) => (current ? { ...current, suspended: value } : current))
-  }, [])
+  const logout = useCallback(() => {
+    if (AUTH_ENABLED) {
+      setTokens(null)
+      storeTokens(null)
+      setAccessToken(null)
+      endSession(tokens?.target ?? 'student', tokens?.idToken ?? null)
+      return
+    }
+    setDemoSession(null)
+  }, [tokens])
+
+  const switchRole = useCallback(
+    (role: Role) => {
+      if (AUTH_ENABLED) return
+      if (role === 'guest') {
+        setDemoSession(null)
+        return
+      }
+      const profile = profiles[role]
+      setDemoSession({
+        role,
+        ...profile,
+        expiresAt: Date.now() + 15 * 60 * 1000,
+      })
+    },
+    [],
+  )
 
   const expire = useCallback(() => {
-    setSession((current) =>
+    setDemoSession((current) =>
       current ? { ...current, expiresAt: Date.now() - 1000 } : current,
     )
   }, [])
 
+  const session = useMemo(
+    () => (tokens ? sessionFromTokens(tokens) : demoSession),
+    [tokens, demoSession],
+  )
+
   const value = useMemo<AuthContextValue>(
     () => ({
-      session: session && !session.suspended ? session : session,
-      isAuthenticated: Boolean(session) && !session?.suspended,
+      session,
+      isAuthenticated: Boolean(session),
+      authEnabled: AUTH_ENABLED,
       login,
+      signIn,
       logout,
       switchRole,
-      setSuspended,
       expire,
     }),
-    [session, login, logout, switchRole, setSuspended, expire],
+    [session, login, signIn, logout, switchRole, expire],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

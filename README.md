@@ -21,7 +21,7 @@ tsh/
 │   │   ├── Gateway/              # API Gateway (routes + CORS)
 │   │   └── keycloak/             # Realm tsh (auth, rôles, clients)
 │   └── microservices/
-│       ├── User/                 # Profil, rôles, suspension (Keycloak)
+│       ├── User/                 # Profil et rôles (Keycloak)
 │       ├── Housing/              # Annonces logements, recherche, favoris
 │       ├── Colocation/           # Annonces colocation, matching Data Science
 │       ├── Contract/             # Contrats PDF, paiements et reçus
@@ -65,8 +65,43 @@ tsh/
 | Transport | 8769 |
 | Frontend (Vite) | 5173 |
 | PostgreSQL | 5433 |
+| MinIO (API / console) | 9000 / 9001 |
 
 ## Démarrage
+
+### 1. Démarrer l'infrastructure (Docker)
+```bash
+cd Backend
+docker compose up -d
+```
+
+### 2. Démarrer les services Spring Boot (depuis l'IDE ou en ligne de commande)
+Lancer dans l'ordre :
+1. `EurekaServerApplication` (port 8761)
+2. `UserApplication` (port 8762)
+3. `GatewayApplication` (port 8083)
+
+### 3. Démarrer le Frontend
+```bash
+cd Frontend
+npm install
+npm run dev                # http://localhost:5173
+```
+
+### Comptes de test (realm `tsh`)
+
+| Compte | Mot de passe | Accès |
+|---|---|---|
+| `etudiant@tsh.tn` | `etudiant123` | Application étudiante (`/connexion`) |
+| `admin@tsh.tn` | `admin123` | Console d'administration (`/admin/connexion`) |
+
+Les formulaires de connexion envoient les identifiants à Keycloak (grant
+`password`), qui renvoie le JWT et les rôles : l'utilisateur reste sur les pages
+TSH, sans écran Keycloak. C'est actif dès que `VITE_KEYCLOAK_URL` est renseigné
+dans `Frontend/.env` (voir `Frontend/.env.example`). Seuls le profil et la photo
+passent par l'API ; les autres pages affichent encore les données de démonstration.
+
+### Documentation par composant
 
 - [Microservice User](Backend/microservices/User/README.md)
 - [API Gateway](Backend/infrastructure/Gateway/README.md)

@@ -19,7 +19,8 @@ public final class UtilisateurMapper {
                 utilisateur.getEmail(),
                 utilisateur.getTelephone(),
                 utilisateur.getRole(),
-                utilisateur.getVerifie()
+                utilisateur.getVerifie(),
+                utilisateur.getPhotoUrl()
         );
     }
 }

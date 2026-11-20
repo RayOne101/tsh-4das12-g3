@@ -47,7 +47,6 @@ Le fichier `gateway-tests.http` contient le flux complet :
 2. `GET /api/utilisateurs/me`
 3. token admin
 4. liste admin
-5. suspension / réactivation
 
 ## Variables
 

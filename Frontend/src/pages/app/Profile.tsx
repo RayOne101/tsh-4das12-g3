@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   LogOut,
@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { PageHeader, Panel } from '@/components/AppBits'
 import { useAuth } from '@/lib/auth'
+import { USE_MOCKS, getProfile, updateProfile, uploadAvatar } from '@/lib/api'
 import { useToast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
@@ -17,6 +18,64 @@ export function Profile() {
   const { session, logout } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [photo, setPhoto] = useState<string | undefined>(session?.image)
+  const [saving, setSaving] = useState(false)
+
+  // En mode reel, le profil affiche vient du microservice User (pas des donnees d'API demo).
+  useEffect(() => {
+    if (USE_MOCKS) return
+    getProfile()
+      .then((profile) => {
+        setForm({ nom: profile.nom, email: profile.email, telephone: profile.telephone ?? '' })
+        if (profile.photoUrl) setPhoto(profile.photoUrl)
+      })
+      .catch((err: unknown) =>
+        toast(err instanceof Error ? err.message : 'Profil indisponible', 'error'),
+      )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handlePhoto = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Sans backend (mode demo), on affiche juste un apercu local.
+    if (USE_MOCKS) {
+      setPhoto(URL.createObjectURL(file))
+      toast('Aperçu local — envoi réel désactivé en mode démo', 'info')
+      return
+    }
+
+    try {
+      const profile = await uploadAvatar(file)
+      setPhoto(profile.photoUrl ?? undefined)
+      toast('Photo de profil enregistrée', 'success')
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Envoi de la photo impossible', 'error')
+    }
+  }
+
+  const handleSave = async () => {
+    if (USE_MOCKS) {
+      toast('Profil enregistré avec succès', 'success')
+      return
+    }
+    setSaving(true)
+    try {
+      const profile = await updateProfile({
+        nom: form.nom,
+        email: form.email,
+        telephone: form.telephone.trim(),
+      })
+      setForm({ nom: profile.nom, email: profile.email, telephone: profile.telephone ?? '' })
+      toast('Profil enregistré', 'success')
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Enregistrement impossible', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   // Matches backend ProfilUpdateRequest DTO:
   //   nom (String, required), email (String, required), telephone (String, optional)
@@ -47,10 +106,17 @@ export function Profile() {
       {/* Avatar card */}
       <div className="mb-6 flex flex-wrap items-center gap-4 rounded-[1.5rem] border border-ink/[0.07] bg-white p-5">
         <div className="relative">
-          <img src={session?.image} alt="" className="size-16 rounded-full object-cover" />
+          <img src={photo} alt="" className="size-16 rounded-full object-cover" />
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handlePhoto}
+            className="hidden"
+          />
           <button
             type="button"
-            onClick={() => toast('Changer de photo', 'info')}
+            onClick={() => fileInput.current?.click()}
             className="absolute -bottom-1 -right-1 grid size-6 place-items-center rounded-full border-2 border-white bg-ink text-cream"
             aria-label="Changer la photo"
           >
@@ -128,10 +194,11 @@ export function Profile() {
           <div className="mt-5 flex justify-end border-t border-ink/[0.06] pt-4">
             <button
               type="button"
-              onClick={() => toast('Profil enregistré avec succès', 'success')}
+              onClick={handleSave}
+              disabled={saving}
               className="btn-primary btn-sm"
             >
-              Enregistrer les modifications
+              {saving ? 'Enregistrement…' : 'Enregistrer les modifications'}
             </button>
           </div>
         </Panel>

@@ -64,18 +64,39 @@ Les rôles sont lus depuis le claim `realm_access.roles` du JWT.
 
 | Client | Type | Usage |
 |---|---|---|
-| `tsh-web` | Public, PKCE | Frontend React, redirect `http://localhost:5173/*` |
+| `tsh-web` | Public, PKCE | Application étudiante, redirect `http://localhost:5173/*` |
+| `tsh-admin-web` | Public, PKCE | Console d'administration, redirect `http://localhost:5173/admin/callback` |
 | `tsh-cli` | Public | Password grant pour les tests HTTP |
-| `tsh-user-service` | Confidentiel | API Admin Keycloak (suspension de compte) |
 
-Le secret de `tsh-user-service` est `change-me` en développement. Il doit être
-remplacé hors développement via `KEYCLOAK_CLIENT_SECRET`.
+### Connexion depuis le frontend
+
+Les pages de connexion de l'application restent celles de TSH : les identifiants
+saisis sont envoyés au realm avec le grant `password` (clients publics, aucun
+secret dans le navigateur) et Keycloak renvoie le JWT. Aucune redirection vers la
+page de connexion Keycloak. Il est activé par `Frontend/.env` :
+
+```dotenv
+VITE_KEYCLOAK_URL=http://localhost:8085
+VITE_KEYCLOAK_REALM=tsh
+VITE_KEYCLOAK_CLIENT_ID=tsh-web
+VITE_KEYCLOAK_ADMIN_CLIENT_ID=tsh-admin-web
+```
+
+L'application étudiante ouvre une session avec `tsh-web`. La console
+`/admin/connexion` utilise `tsh-admin-web` et refuse toute session sans le rôle
+realm `ROLE_ADMIN`. Sans `VITE_KEYCLOAK_URL`, le frontend retombe sur une
+connexion simulée (mode démonstration).
+
+Le grant `password` est déprécié par OAuth 2.1 : il est acceptable ici parce que
+le client est une application de première main, mais une application publique en
+production devrait revenir au flow Authorization Code + PKCE (encore activé sur
+`tsh-web` avec son URI de retour `http://localhost:5173/*`).
 
 ### Comptes de développement
 
 | Username | Mot de passe | Rôle |
 |---|---|---|
-| `admin` | `admin123` | `ROLE_ADMIN` |
+| `admin@tsh.tn` | `admin123` | `ROLE_ADMIN` |
 | `etudiant@tsh.tn` | `etudiant123` | `ROLE_USER` |
 
 Le username est l'email. L'inscription libre est activée et attribue `ROLE_USER`.

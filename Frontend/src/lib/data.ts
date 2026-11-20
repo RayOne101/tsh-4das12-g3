@@ -933,7 +933,7 @@ export const adminUsers = [
     email: 'slim.j@example.tn',
     role: 'Propriétaire',
     verified: false,
-    status: 'Suspendu',
+    status: 'En attente',
     joined: '2026-10-01',
     listings: 4,
   },
@@ -981,8 +981,8 @@ export const faq = [
     a: "Le service Contract génère un bail numérique et un échéancier. Les paiements sont tracés, les reçus sont archivés, et chaque échéance en retard déclenche une notification aux deux parties.",
   },
   {
-    q: 'Que se passe-t-il si mon compte est suspendu ?',
-    a: "Une suspension intervient après un signalement confirmé ou une vérification échouée. Vous recevez un e-mail avec le motif et pouvez déposer un recours depuis la page de connexion. Vos contrats actifs restent accessibles en lecture seule.",
+    q: 'Comment mon profil est-il vérifié ?',
+    a: "Chaque compte est rattaché à une identité Keycloak unique. Les documents fournis lors de l’inscription sont contrôlés par l’équipe TSH, puis votre profil affiche un badge de vérification.",
   },
 ]
 

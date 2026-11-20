@@ -4,12 +4,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import tn.esprit.tsh.user.dto.ProfilUpdateRequest;
 import tn.esprit.tsh.user.dto.UtilisateurResponse;
 import tn.esprit.tsh.user.entity.RoleType;
@@ -17,6 +18,7 @@ import tn.esprit.tsh.user.entity.Utilisateur;
 import tn.esprit.tsh.user.exception.ResourceNotFoundException;
 import tn.esprit.tsh.user.mapper.UtilisateurMapper;
 import tn.esprit.tsh.user.service.IUtilisateurService;
+import tn.esprit.tsh.user.service.MediaStorageService;
 
 import java.util.List;
 import java.util.Map;
@@ -27,9 +29,12 @@ import java.util.Map;
 public class UtilisateurController {
 
     private final IUtilisateurService utilisateurService;
+    private final MediaStorageService mediaStorageService;
 
-    public UtilisateurController(IUtilisateurService utilisateurService) {
+    public UtilisateurController(IUtilisateurService utilisateurService,
+                                 MediaStorageService mediaStorageService) {
         this.utilisateurService = utilisateurService;
+        this.mediaStorageService = mediaStorageService;
     }
 
     @GetMapping
@@ -45,7 +50,6 @@ public class UtilisateurController {
     @Operation(summary = "Profil de l'utilisateur connecte")
     @ApiResponse(responseCode = "200", description = "Profil trouve")
     @ApiResponse(responseCode = "404", description = "Utilisateur introuvable")
-    @ApiResponse(responseCode = "403", description = "Compte suspendu")
     public ResponseEntity<UtilisateurResponse> getProfil(@AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(UtilisateurMapper.toResponse(profilConnecte(jwt)));
     }
@@ -61,15 +65,22 @@ public class UtilisateurController {
         return ResponseEntity.ok(utilisateurService.mettreAJourProfil(profilConnecte(jwt).getId(), dto));
     }
 
-    /** Profil lie au JWT. Un compte suspendu par un admin garde un token valide : on le refuse ici. */
+    @PostMapping(value = "/me/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Envoyer une photo de profil")
+    @ApiResponse(responseCode = "200", description = "Photo enregistree, URL renvoyee dans le profil")
+    @ApiResponse(responseCode = "400", description = "Fichier manquant, trop lourd ou format non supporte")
+    public ResponseEntity<UtilisateurResponse> televerserPhoto(@AuthenticationPrincipal Jwt jwt,
+                                                               @RequestParam("file") MultipartFile fichier) {
+        Utilisateur user = profilConnecte(jwt);
+        String photoUrl = mediaStorageService.uploadAvatar(user.getKeycloakId(), fichier);
+        return ResponseEntity.ok(utilisateurService.mettreAJourPhoto(user.getId(), photoUrl));
+    }
+
+    /** Profil lie au JWT : cree au premier appel si Keycloak l'a deja authentifie. */
     private Utilisateur profilConnecte(Jwt jwt) {
-        Utilisateur user = utilisateurService
+        return utilisateurService
                 .trouverOuCreerParKeycloakId(jwt.getSubject(), jwt.getClaimAsString("email"), nom(jwt), role(jwt))
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur", jwt.getSubject()));
-        if (Boolean.FALSE.equals(user.getVerifie())) {
-            throw new AccessDeniedException("Compte suspendu");
-        }
-        return user;
     }
 
     private static String nom(Jwt jwt) {

@@ -11,6 +11,7 @@ build/
 node_modules/
 dist/
 .vite/
+*.tsbuildinfo
 npm-debug.log*
 yarn-error.log*
 pnpm-debug.log*
@@ -28,6 +29,9 @@ application-secret.yml
 *.swp
 .DS_Store
 Thumbs.db
+
+# --- Logs des scripts locaux ---
+Backend/logs/
 
 # --- Données locales (volumes Docker, dumps) ---
 data/

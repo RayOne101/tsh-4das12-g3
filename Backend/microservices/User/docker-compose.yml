@@ -1,0 +1,116 @@
+name: tsh
+
+services:
+  postgres-user:
+    image: postgres:16-alpine
+    container_name: tsh-postgres-user
+    restart: always
+    environment:
+      POSTGRES_DB: tsh_users
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      # Utilisees par le script d'initialisation du volume PostgreSQL.
+      KEYCLOAK_DB_USER: ${KEYCLOAK_DB_USER:-keycloak}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_user_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  pgweb:
+    image: sosedoff/pgweb:latest
+    container_name: tsh-pgweb
+    restart: always
+    ports:
+      - "8082:8081"
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres-user:5432/tsh_users?sslmode=disable
+    command: ["pgweb", "--bind=0.0.0.0", "--listen=8081"]
+    depends_on:
+      postgres-user:
+        condition: service_healthy
+
+  pgweb-keycloak:
+    image: sosedoff/pgweb:latest
+    container_name: tsh-pgweb-keycloak
+    restart: always
+    ports:
+      - "8086:8081"
+    environment:
+      - DATABASE_URL=postgres://${KEYCLOAK_DB_USER:-keycloak}:${KEYCLOAK_DB_PASSWORD:-keycloak}@postgres-user:5432/keycloak?sslmode=disable
+    command: ["pgweb", "--bind=0.0.0.0", "--listen=8081"]
+    depends_on:
+      postgres-user:
+        condition: service_healthy
+
+  # Les images officielles minio/minio ne sont plus publiees sur Docker Hub :
+  # on utilise l'archive Bitnami, compatible S3, en developpement local.
+  minio:
+    image: bitnamilegacy/minio:latest
+    container_name: tsh-minio
+    restart: always
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_DEFAULT_BUCKETS: tsh-avatars,tsh-housing,tsh-marketplace,tsh-contracts
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/bitnami/minio/data
+
+  # Rend les buckets publics lisibles et initialise tous les buckets du projet.
+  minio-init:
+    image: bitnamilegacy/minio-client:latest
+    container_name: tsh-minio-init
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD}; do sleep 2; done;
+      mc mb --ignore-existing local/tsh-avatars;
+      mc mb --ignore-existing local/tsh-housing;
+      mc mb --ignore-existing local/tsh-marketplace;
+      mc mb --ignore-existing local/tsh-contracts;
+      mc anonymous set download local/tsh-avatars;
+      mc anonymous set download local/tsh-housing;
+      mc anonymous set download local/tsh-marketplace;
+      "
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: tsh-keycloak
+    restart: always
+    command: ["start-dev", "--import-realm"]
+    depends_on:
+      postgres-user:
+        condition: service_healthy
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:-http://localhost:8085}
+      KC_HTTP_ENABLED: "true"
+      KC_DB: postgres
+      KC_DB_URL: ${KEYCLOAK_DB_URL:-jdbc:postgresql://postgres-user:5432/keycloak}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak}
+      KC_DB_POOL_INITIAL_SIZE: ${KEYCLOAK_DB_POOL_INITIAL_SIZE:-1}
+      KC_DB_POOL_MIN_SIZE: ${KEYCLOAK_DB_POOL_MIN_SIZE:-1}
+      KC_DB_POOL_MAX_SIZE: ${KEYCLOAK_DB_POOL_MAX_SIZE:-10}
+    ports:
+      - "8085:8080"
+    volumes:
+      - ../../infrastructure/keycloak/tsh-realm.json:/opt/keycloak/data/import/tsh-realm.json:ro
+
+volumes:
+  postgres_user_data:
+  minio_data:

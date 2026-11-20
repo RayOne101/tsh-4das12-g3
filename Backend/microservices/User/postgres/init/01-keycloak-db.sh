@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -euo pipefail
 
 # Cree une base PostgreSQL dediee a Keycloak sur le meme serveur que User.

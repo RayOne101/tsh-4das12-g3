@@ -1,3 +1,5 @@
+name: tsh
+
 services:
   postgres-user:
     image: postgres:16-alpine
@@ -7,7 +9,6 @@ services:
       POSTGRES_DB: tsh_users
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      # Utilisees par le script d'initialisation du volume PostgreSQL.
       KEYCLOAK_DB_USER: ${KEYCLOAK_DB_USER:-keycloak}
       KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak}
     ports:
@@ -47,7 +48,6 @@ services:
       postgres-user:
         condition: service_healthy
 
-  # Les images officielles minio/minio ne sont plus publiees sur Docker Hub :
   # on utilise l'archive Bitnami, compatible S3, en developpement local.
   minio:
     image: bitnamilegacy/minio:latest

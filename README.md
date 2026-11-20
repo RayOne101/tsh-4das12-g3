@@ -69,20 +69,24 @@ tsh/
 
 ## Démarrage
 
-### Tout démarrer en une commande
-
+### 1. Démarrer l'infrastructure (Docker)
 ```bash
 cd Backend
-./start-local.sh --build   # conteneurs + Eureka + User + Gateway
+docker compose up -d
+```
 
-cd ../Frontend
+### 2. Démarrer les services Spring Boot (depuis l'IDE ou en ligne de commande)
+Lancer dans l'ordre :
+1. `EurekaServerApplication` (port 8761)
+2. `UserApplication` (port 8762)
+3. `GatewayApplication` (port 8083)
+
+### 3. Démarrer le Frontend
+```bash
+cd Frontend
 npm install
 npm run dev                # http://localhost:5173
 ```
-
-`./start-local.sh` sans `--build` réutilise les jars existants et ignore les
-services déjà lancés. `./stop-local.sh` arrête les trois services Spring
-(`--infra` coupe aussi les conteneurs). Logs et PID : `Backend/logs/`.
 
 ### Comptes de test (realm `tsh`)
 

@@ -59,39 +59,9 @@ Ce document explique le fonctionnement, l'architecture et le démarrage complet 
 
 ---
 
-## 3. Démarrage Rapide
+## 3. Démarrage des Services (Manuel via IDE ou Terminal)
 
-### Option A : Tout lancer en un clic (Recommandé)
-
-#### Sous Windows (PowerShell) :
-```powershell
-cd Backend
-# Démarrage des conteneurs Docker + Eureka + User + Gateway :
-.\start-local.ps1
-
-# Ou avec recompilation complète des JARs :
-.\start-local.ps1 -Build
-```
-
-Pour tout arrêter :
-```powershell
-.\stop-local.ps1         # Arrête Eureka, User et Gateway
-.\stop-local.ps1 -Infra  # Arrête aussi les conteneurs Docker
-```
-
-#### Sous Linux / macOS / Git Bash :
-```bash
-cd Backend
-./start-local.sh --build
-# Pour arrêter :
-./stop-local.sh --infra
-```
-
----
-
-### Option B : Démarrage manuel pas à pas
-
-#### Étape 1 : Démarrer l'infrastructure Docker
+### Étape 1 : Démarrer l'infrastructure Docker
 À la racine de `Backend/` :
 ```powershell
 docker compose up -d
@@ -99,34 +69,25 @@ docker compose up -d
 Cela lance :
 - PostgreSQL sur `localhost:5433` (bases `tsh_users` et `keycloak`)
 - Keycloak sur `http://localhost:8085` (import automatique du realm `tsh`)
-- MinIO sur `http://localhost:9000` (API) et `http://localhost:9001` (Console avec `minioadmin` / `minioadmin`)
-- Pgweb (clients SQL web) sur `http://localhost:8082` (User) et `http://localhost:8086` (Keycloak)
+- MinIO sur `http://localhost:9000` (API) et `http://localhost:9001` (Console)
+- Pgweb sur `http://localhost:8082` (User) et `http://localhost:8086` (Keycloak)
 
-#### Étape 2 : Démarrer Eureka Discovery
-```powershell
-cd Backend/infrastructure/Eureka
-mvn spring-boot:run
-```
-Accès au tableau de bord Eureka : **http://localhost:8761**
+Pour arrêter les conteneurs : `docker compose down`.
 
-#### Étape 3 : Démarrer le microservice User
-```powershell
-cd Backend/microservices/User
-mvn spring-boot:run
-```
-Le service écoute sur **http://localhost:8762** et s'enregistre auprès d'Eureka sous le nom `USER`.
+### Étape 2 : Démarrer Eureka Discovery (Port 8761)
+Dans IntelliJ IDEA : exécuter `EurekaServerApplication` (ou en ligne de commande : `cd Backend/infrastructure/Eureka && mvn spring-boot:run`).  
+Tableau de bord : **http://localhost:8761**
 
-#### Étape 4 : Démarrer la Gateway
-```powershell
-cd Backend/infrastructure/Gateway
-mvn spring-boot:run
-```
-La Gateway écoute sur **http://localhost:8083**.
+### Étape 3 : Démarrer le microservice User (Port 8762)
+Dans IntelliJ IDEA : exécuter `UserApplication` (ou `cd Backend/microservices/User && mvn spring-boot:run`).  
+Le service s'enregistre auprès d'Eureka sous le nom `USER`.
 
-#### Étape 5 : Démarrer le Frontend
+### Étape 4 : Démarrer la Gateway (Port 8083)
+Dans IntelliJ IDEA : exécuter `GatewayApplication` (ou `cd Backend/infrastructure/Gateway && mvn spring-boot:run`).
+
+### Étape 5 : Démarrer le Frontend (Port 5173)
 ```powershell
 cd Frontend
-npm install
 npm run dev
 ```
 Accessible sur **http://localhost:5173**.

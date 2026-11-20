@@ -1,3 +1,5 @@
+name: tsh
+
 services:
   postgres-user:
     image: postgres:16-alpine

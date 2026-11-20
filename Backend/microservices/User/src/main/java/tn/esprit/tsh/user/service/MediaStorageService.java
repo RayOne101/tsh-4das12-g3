@@ -14,7 +14,6 @@ import java.util.UUID;
 
 /**
  * Stocke les images dans MinIO et renvoie leur URL publique.
- * Aucun binaire n'est conserve en base : seule l'URL est enregistree sur le profil.
  */
 @Service
 public class MediaStorageService {

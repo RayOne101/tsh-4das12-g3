@@ -56,7 +56,7 @@ start_service() {
 }
 
 echo "1/3 Conteneurs (Postgres, pgweb, Keycloak, MinIO)"
-docker compose -f microservices/User/docker-compose.yml up -d
+docker compose up -d
 echo "  attente de Keycloak..."
 wait_for Keycloak 8085 120 > /dev/null
 echo "  attente de MinIO..."

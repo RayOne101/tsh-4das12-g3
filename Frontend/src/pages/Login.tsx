@@ -36,8 +36,13 @@ export function Login() {
         const tokens = await signIn('student', email.trim(), password)
         toast(`Connexion réussie — Bienvenue ${tokens.claims.name ?? email} !`, 'success')
         navigate(returnTo)
-      } catch {
-        toast('E-mail ou mot de passe incorrect.', 'error')
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : ''
+        if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.toLowerCase().includes('fetch')) {
+          toast("Serveur d'authentification (Keycloak) injoignable sur le port 8085. Démarrez les conteneurs Docker.", 'error')
+        } else {
+          toast('E-mail ou mot de passe incorrect.', 'error')
+        }
       } finally {
         setLoading(false)
       }

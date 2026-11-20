@@ -29,5 +29,5 @@ done
 
 if [ "$STOP_INFRA" = "1" ]; then
   echo "Conteneurs"
-  docker compose -f microservices/User/docker-compose.yml down
+  docker compose down
 fi

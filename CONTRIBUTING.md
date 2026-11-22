@@ -31,6 +31,8 @@ docker compose up -d
 > - Keycloak : http://localhost:8085 (identifiants admin : `admin` / `admin`)
 > - PgWeb (base de données) : http://localhost:8082
 > - MinIO Console : http://localhost:9001 (identifiants : `minioadmin` / `minioadmin`)
+> - Zipkin (Traçabilité distribuée) : http://localhost:9411
+> - Kafka (Broker d'événements) : `localhost:9092`
 
 ---
 

@@ -16,6 +16,7 @@ import { useAuth } from '@/lib/auth'
 import type { Role } from '@/lib/data'
 import { useToast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
+import { USE_MOCKS, registerProfile } from '@/lib/api'
 
 export function Onboarding() {
   const navigate = useNavigate()
@@ -46,7 +47,22 @@ export function Onboarding() {
       form.password === form.confirmPassword &&
       consent)
 
-  const finish = () => {
+  const finish = async () => {
+    // En mode réel (Keycloak actif) : on sauvegarde le profil dans le microservice User.
+    // En mode démo : on simule juste la connexion sans appel réseau.
+    if (!USE_MOCKS) {
+      try {
+        await registerProfile(
+          form.nom || 'Étudiant TSH',
+          form.email || 'etudiant@tsh.tn',
+          form.telephone.trim() || null,
+        )
+      } catch {
+        // Si le microservice est indisponible, on continue quand même.
+        // Le profil sera créé automatiquement au premier appel /me (JIT).
+      }
+    }
+
     login(role, {
       name: form.nom || 'Étudiant TSH',
       email: form.email || 'etudiant@tsh.tn',

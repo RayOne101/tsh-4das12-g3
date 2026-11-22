@@ -171,6 +171,9 @@ export function Profile() {
                   className="field cursor-not-allowed bg-cream/60 pl-10 text-ink-soft"
                 />
               </div>
+              <p className="mt-1.5 text-[11.5px] text-ink-soft">
+                L'e-mail est géré par Keycloak. Pour le modifier, contacte l'administration.
+              </p>
             </div>
 
             {/* Téléphone */}

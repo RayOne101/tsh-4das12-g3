@@ -6,7 +6,7 @@
  * `VITE_USE_MOCKS=false` et appeler `setAccessToken(token)` : seul le profil
  * (et l'envoi de photo) passe alors par le backend.
  */
-import { loadTokens } from './oidc'
+import { loadTokens, storeTokens } from './oidc'
 
 const API_URL = (import.meta.env.VITE_API_URL ?? '/api').replace(/\/$/, '')
 
@@ -43,6 +43,15 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   const response = await fetch(`${API_URL}${path}`, { ...init, headers })
   if (!response.ok) {
+    if (response.status === 401) {
+      // Jeton expiré ou non valide : réinitialise la session et redirige vers la page d'expiration
+      storeTokens(null)
+      setAccessToken(null)
+      if (window.location.pathname !== '/session-expiree' && window.location.pathname !== '/connexion') {
+        window.location.assign('/session-expiree')
+      }
+    }
+
     // Le backend renvoie des ProblemDetail (title/detail) : on les remonte tels quels.
     let message = `API ${response.status}`
     try {

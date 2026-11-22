@@ -1,108 +1,230 @@
-# TSH — Trusted Student Housing
+# 🏠 TSH — Trusted Student Housing
 
-Plateforme web communautaire pour étudiants en Tunisie : recherche de logements, colocation avec matching, marketplace de meubles et services de déménagement.
+<div align="center">
 
-![Java](https://img.shields.io/badge/Java-17-orange?logo=java)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x-green?logo=springboot)
-![React](https://img.shields.io/badge/React-18-blue?logo=react)
-![Keycloak](https://img.shields.io/badge/Keycloak-IAM-red?logo=redhat)
-![Apache Kafka](https://img.shields.io/badge/Apache_Kafka-Event_Bus-black?logo=apachekafka)
-![MinIO](https://img.shields.io/badge/MinIO-Object_Storage-c72c48?logo=minio)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database_per_Service-336791?logo=postgresql)
-![Docker](https://img.shields.io/badge/Docker-Containers-2496ed?logo=docker)
+[![Java](https://img.shields.io/badge/Java-17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://www.oracle.com/java/)
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.3.5-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Spring Cloud](https://img.shields.io/badge/Spring_Cloud-2023.0.3-6DB33F?style=for-the-badge&logo=spring&logoColor=white)](https://spring.io/projects/spring-cloud)
+[![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![Keycloak](https://img.shields.io/badge/Keycloak-26.0_IAM-E32A1C?style=for-the-badge&logo=keycloak&logoColor=white)](https://www.keycloak.org/)
+[![Kafka](https://img.shields.io/badge/Apache_Kafka-KRaft_Mode-231F20?style=for-the-badge&logo=apachekafka&logoColor=white)](https://kafka.apache.org/)
+[![Zipkin](https://img.shields.io/badge/Zipkin-Distributed_Tracing-FF6F00?style=for-the-badge&logo=openzipkin&logoColor=white)](https://zipkin.io/)
+[![MinIO](https://img.shields.io/badge/MinIO-S3_Storage-C72C48?style=for-the-badge&logo=minio&logoColor=white)](https://min.io/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
-## Structure du projet
+**Plateforme web communautaire pour étudiants en Tunisie**  
+*Logements vérifiés · Colocation intelligente · Marketplace de meubles · Déménagement solidaire*
 
-```text
-tsh/
-├── Backend/
-│   ├── infrastructure/
-│   │   ├── Eureka/               # Service discovery
-│   │   ├── Gateway/              # API Gateway (routes + CORS)
-│   │   └── keycloak/             # Realm tsh (auth, rôles, clients)
-│   └── microservices/
-│       ├── User/                 # Profil et rôles (Keycloak)
-│       ├── Housing/              # Annonces logements, recherche, favoris
-│       ├── Colocation/           # Annonces colocation, matching Data Science
-│       ├── Contract/             # Contrats PDF, paiements et reçus
-│       ├── Communication/        # Messagerie temps réel WebSocket & alertes Kafka
-│       ├── Review/               # Avis, notations et réclamations
-│       ├── Marketplace/          # Marketplace de meubles d'occasion
-│       └── Transport/            # Déménagement et transport
-├── Frontend/                     # Application web cliente React
-├── Documentation/
-│   ├── Diagrams/
-│   │   ├── architecture-logique.png
-│   │   ├── architecture-physique.png
-│   │   ├── diagramme-classes.png
-│   │   └── class-01-utilisateurs.png ... class-08-moving.png (diagrammes par microservice)
-│   ├── TSH_Cahier_des_charges.docx
-│   └── TSH_Cahier_des_charges.pdf
-├── .env.example                  # Variables locales (copier vers .env)
-├── .gitignore
-└── README.md
+</div>
+
+---
+
+## 📑 Sommaire
+- [🎯 Vision & Objectifs](#-vision--objectifs)
+- [🏗️ Architecture Globale](#️-architecture-globale)
+- [🌐 Tableau des Ports & Dashboards](#-tableau-des-ports--dashboards)
+- [📁 Organisation du Code](#-organisation-du-code)
+- [🛡️ Composants Transverses (Sécurité, Événements, Tracing)](#️-composants-transverses)
+- [🚀 Guide de Démarrage Rapide](#-guide-de-démarrage-rapide)
+- [🔑 Comptes de Test](#-comptes-de-test)
+
+---
+
+## 🎯 Vision & Objectifs
+
+TSH (**Trusted Student Housing**) résout les difficultés d'hébergement des étudiants tunisiens :
+1. **Zéro arnaque** : Logements certifiés et propriétaires vérifiés avec badge de confiance.
+2. **Colocation par affinités** : Algorithme de compatibilité basé sur les rythmes de vie et habitudes d'études.
+3. **Bail et paiements clairs** : Contrats numériques et suivi des échéances en ligne.
+4. **Économie circulaire étudiante** : Vente de meubles d'occasion entre promotions et entraide pour le déménagement.
+
+---
+
+## 🏗️ Architecture Globale
+
+Le projet repose sur une **architecture microservices distribuée**, découplée et résiliente :
+
+```mermaid
+flowchart TB
+    subgraph Client ["💻 Client"]
+        UI["Frontend React 18 + Vite (Port 5173)"]
+    end
+
+    subgraph Infra_Gateway ["🚪 Point d'Entrée & Routage"]
+        GW["API Gateway Spring Cloud (Port 8083)"]
+        EUR["Eureka Server - Service Discovery (Port 8761)"]
+    end
+
+    subgraph Securite ["🛡️ Authentification & Identité"]
+        KC["Keycloak 26 IAM - Realm 'tsh' (Port 8085)"]
+    end
+
+    subgraph Services ["⚙️ Microservices Backend"]
+        USER["Microservice User (Port 8762)"]
+        HOUS["Microservice Housing (Port 8763)"]
+        COLO["Microservice Colocation (Port 8764)"]
+        CONT["Microservice Contract (Port 8765)"]
+        COMM["Microservice Communication (Port 8766)"]
+        REV["Microservice Review (Port 8767)"]
+        MARK["Microservice Marketplace (Port 8768)"]
+        TRAN["Microservice Transport (Port 8769)"]
+    end
+
+    subgraph Data_Storage ["💾 Données & Stockage"]
+        PG[("PostgreSQL 16 (Port 5433)")]
+        MINIO[("MinIO S3 Buckets (Ports 9000 / 9001)")]
+    end
+
+    subgraph Event_Tracing ["📡 Événements & Observabilité"]
+        KAFKA{{"Apache Kafka Bus KRaft (Port 9092)"}}
+        ZIPKIN{{"Zipkin Tracing UI (Port 9411)"}}
+    end
+
+    UI -->|Requêtes HTTP /api/...| GW
+    UI -->|Direct Login ROPC| KC
+    GW <-->|Découverte dynamique lb://| EUR
+    GW --> USER & HOUS & COLO & CONT & COMM & REV & MARK & TRAN
+    USER --> PG
+    USER --> MINIO
+    USER -.->|Événements user-events| KAFKA
+    GW & USER -.->|Tracing Spans| ZIPKIN
 ```
 
-> Seul le microservice `User` est implémenté à ce stade. Les autres dossiers
-> contiennent les skeletons des microservices à venir : ils démarrent, sont
-> découverts par Eureka et exposent leur port, mais n'ont pas encore de logique
-> métier ni de base de données.
+### Diagramme de Conception
+![Architecture Logique](Documentation/Diagrams/architecture-logique.png)
 
-## Ports
+---
 
-| Service | Port |
-|---|---|
-| Eureka | 8761 |
-| Gateway | 8083 |
-| Keycloak | 8085 |
-| User | 8762 |
-| Housing | 8763 |
-| Colocation | 8764 |
-| Contract | 8765 |
-| Communication | 8766 |
-| Review | 8767 |
-| Marketplace | 8768 |
-| Transport | 8769 |
-| Frontend (Vite) | 5173 |
-| PostgreSQL | 5433 |
-| MinIO (API / console) | 9000 / 9001 |
+## 🌐 Tableau des Ports & Dashboards
 
-## Démarrage
+Toutes les briques du projet sont centralisées et accessibles via des ports dédiés :
 
-### 1. Démarrer l'infrastructure (Docker)
+| Statut | Service / Outil | Port | URL / Point d'accès | Rôle & Utilité | Identifiants par défaut |
+|:---:|:---|:---:|:---|:---|:---|
+| 🟢 | **Frontend** | `5173` | [http://localhost:5173](http://localhost:5173) | Application Web étudiante (Vite + React) | — |
+| 🟢 | **API Gateway** | `8083` | [http://localhost:8083](http://localhost:8083) | Point d'entrée unique, routage dynamique, CORS | — |
+| 🟢 | **Eureka Discovery** | `8761` | [http://localhost:8761](http://localhost:8761) | Tableau de bord de découverte des services | — |
+| 🟢 | **Keycloak IAM** | `8085` | [http://localhost:8085](http://localhost:8085) | Serveur OAuth2 / OIDC, gestion des utilisateurs & rôles | `admin` / `admin` |
+| 🟢 | **User Service** | `8762` | [http://localhost:8762](http://localhost:8762) | Profils, rôles, avatars, auto-provisionnement | — |
+| 🟢 | **Zipkin Tracing** | `9411` | [http://localhost:9411](http://localhost:9411) | Observabilité et graphique de latence des requêtes | — |
+| 🟢 | **MinIO Web Console**| `9001` | [http://localhost:9001](http://localhost:9001) | Interface de gestion des fichiers & photos S3 | `minioadmin` / `minioadmin` |
+| 🟢 | **MinIO S3 API** | `9000` | `http://localhost:9000` | Endpoint API compatible Amazon S3 | `minioadmin` / `minioadmin` |
+| 🟢 | **PostgreSQL (Docker)**| `5433` | `localhost:5433` | Base de données principale (`tsh_users`, `keycloak`) | `postgres` / `postgres` |
+| 🟢 | **PgWeb (DB Viewer)** | `8082` | [http://localhost:8082](http://localhost:8082) | Interface visuelle de consultation de `tsh_users` | Déjà connecté |
+| 🟢 | **PgWeb (Keycloak DB)**| `8086` | [http://localhost:8086](http://localhost:8086) | Interface de consultation de la base `keycloak` | Déjà connecté |
+| 🟢 | **Apache Kafka** | `9092` | `localhost:9092` | Broker d'événements asynchrones (mode KRaft) | — |
+| ⚪ | **Housing Service** | `8763` | `http://localhost:8763` | Gestion des annonces immobilières et favoris | — |
+| ⚪ | **Colocation Service**| `8764` | `http://localhost:8764` | Matching de colocataires & profils de vie | — |
+| ⚪ | **Contract Service** | `8765` | `http://localhost:8765` | Baux numériques, PDF et quittances | — |
+| ⚪ | **Communication** | `8766` | `http://localhost:8766` | Messagerie instantanée WebSocket & notifications | — |
+| ⚪ | **Review Service** | `8767` | `http://localhost:8767` | Avis certifiés, réclamations et notes | — |
+| ⚪ | **Marketplace** | `8768` | `http://localhost:8768` | Petites annonces de meubles d'étudiants | — |
+| ⚪ | **Transport** | `8769` | `http://localhost:8769` | Déménagement et transport solidaire | — |
+
+---
+
+## 📁 Organisation du Code
+
+```text
+tsh-4das12-g3/
+├── 📂 Backend/
+│   ├── 📄 docker-compose.yml           # 🐳 Docker central : Postgres, Keycloak, MinIO, Kafka, Zipkin, PgWeb
+│   ├── 📂 infrastructure/
+│   │   ├── 📂 Eureka/                  # 🧭 Annuaire de découverte (Spring Cloud Netflix Eureka)
+│   │   ├── 📂 Gateway/                 # 🚪 API Gateway réactive (Filtres CORS, headers sécurité, Actuator, Tracing)
+│   │   └── 📂 keycloak/                # 🔐 Export du Realm "tsh" (utilisateurs, rôles, clients publics)
+│   └── 📂 microservices/
+│       ├── 📂 User/                    # 👤 Microservice Utilisateurs & Profil (18 tests validés, MinIO, Kafka)
+│       ├── 📂 Housing/                 # 🏠 Microservice Annonces logements
+│       ├── 📂 Colocation/              # 🤝 Microservice Colocation & Matching
+│       ├── 📂 Contract/                # 📝 Microservice Contrats & Baux
+│       ├── 📂 Communication/           # 💬 Microservice Messagerie & Notifications
+│       ├── 📂 Review/                  # ⭐ Microservice Avis & Notations
+│       ├── 📂 Marketplace/             # 🛋️ Microservice Meubles d'occasion
+│       └── 📂 Transport/               # 🚚 Microservice Déménagement
+│
+├── 📂 Frontend/                        # 🎨 Application React 18 (Vite, TypeScript, Tailwind CSS)
+│   ├── 📂 src/
+│   │   ├── 📂 components/              # Composants réutilisables (AppShell, AdminShell, Layouts, Modals)
+│   │   ├── 📂 lib/                     # API client, auth Keycloak, OIDC token management, toasts
+│   │   ├── 📂 pages/                   # Pages publiques (Housing, Coloc, Meubles, Transport, Login, Onboarding)
+│   │   │   ├── 📂 admin/               # Console d'administration sécurisée
+│   │   │   └── 📂 app/                 # Espace étudiant connecté (Profil, Annonces, Contrats, Messages)
+│   │   └── 📄 main.tsx                 # Point d'entrée avec ErrorBoundary anti-crash
+│
+├── 📂 Documentation/                   # 📚 Diagrammes d'architecture, cahier des charges
+├── 📄 CONTRIBUTING.md                  # 👥 Guide d'intégration et instructions pour l'équipe
+└── 📄 README.md                        # 📖 Ce document
+```
+
+---
+
+## 🛡️ Composants Transverses
+
+### 1. 🔐 Sécurité & Gestion des Identités (Keycloak 26)
+- **Direct Grant (ROPC)** : La connexion s'effectue directement dans les formulaires de l'application sans redirection externe vers un écran tiers.
+- **Rôles applicatifs** : `ROLE_USER` (étudiant / propriétaire) et `ROLE_ADMIN` (modérateur).
+- **Auto-provisioning JIT** : Lors du premier appel après authentification, la table PostgreSQL `utilisateurs` crée automatiquement la ligne du profil étudiant.
+- **Mots de passe** : Keycloak stocke les mots de passe de manière isolée avec hachage bcrypt fort dans sa propre base de données.
+
+### 2. 📡 Événements Asynchrones (Apache Kafka en mode KRaft)
+- Architecture orientée événements (*Event-Driven*) sans serveur Zookeeper externe.
+- Le service `User` publie des événements sur le topic `user-events` (ex: `USER_CREATED`, `USER_UPDATED`).
+- Permet aux services comme `Communication` d'envoyer des notifications sans couplage fort.
+
+### 3. 📊 Traçabilité Distribuée (Zipkin & Micrometer)
+- Chaque requête entrante reçoit un `traceId` unique via l'API Gateway.
+- L'en-tête de traçage est propagé vers les microservices.
+- Accessible en temps réel sur [http://localhost:9411](http://localhost:9411) pour diagnostiquer la latence et les erreurs.
+
+### 4. 🗄️ Stockage d'Objets (MinIO S3)
+Quatre buckets pré-configurés :
+- `tsh-avatars` : Photos de profil des utilisateurs.
+- `tsh-housing` : Photos des annonces d'appartements et colocations.
+- `tsh-marketplace` : Photos des meubles d'occasion.
+- `tsh-contracts` : Fichiers PDF des baux signés.
+
+---
+
+## 🚀 Guide de Démarrage Rapide
+
+### Étape 1 : Démarrer l'infrastructure Docker
 ```bash
 cd Backend
 docker compose up -d
 ```
+> Vérifiez que les 7 conteneurs sont `Up` avec `docker ps`.
 
-### 2. Démarrer les services Spring Boot (depuis l'IDE ou en ligne de commande)
+### Étape 2 : Lancer les services Spring Boot (dans votre IDE)
 Lancer dans l'ordre :
-1. `EurekaServerApplication` (port 8761)
-2. `UserApplication` (port 8762)
-3. `GatewayApplication` (port 8083)
+1. **`EurekaServerApplication`** (`Backend/infrastructure/Eureka`)
+2. **`GatewayApplication`** (`Backend/infrastructure/Gateway`)
+3. **`UserApplication`** (`Backend/microservices/User`)
 
-### 3. Démarrer le Frontend
+### Étape 3 : Lancer le Frontend
 ```bash
 cd Frontend
 npm install
-npm run dev                # http://localhost:5173
+npm run dev
 ```
+Rendez-vous sur [http://localhost:5173](http://localhost:5173).
 
-### Comptes de test (realm `tsh`)
+---
 
-| Compte | Mot de passe | Accès |
-|---|---|---|
-| `etudiant@tsh.tn` | `etudiant123` | Application étudiante (`/connexion`) |
-| `admin@tsh.tn` | `admin123` | Console d'administration (`/admin/connexion`) |
+## 🔑 Comptes de Test
 
-Les formulaires de connexion envoient les identifiants à Keycloak (grant
-`password`), qui renvoie le JWT et les rôles : l'utilisateur reste sur les pages
-TSH, sans écran Keycloak. C'est actif dès que `VITE_KEYCLOAK_URL` est renseigné
-dans `Frontend/.env` (voir `Frontend/.env.example`). Seuls le profil et la photo
-passent par l'API ; les autres pages affichent encore les données de démonstration.
+Les comptes de démonstration suivants sont pré-chargés dans le Realm Keycloak `tsh` :
 
-### Documentation par composant
+| Rôle | Adresse E-mail | Mot de passe | Espace accessible |
+|---|---|---|---|
+| 🎓 **Étudiant** | `etudiant@tsh.tn` | `etudiant123` | `/connexion` → Espace étudiant & profil |
+| 🛡️ **Administrateur** | `admin@tsh.tn` | `admin123` | `/admin/connexion` → Console de modération |
+| 📦 **MinIO Console** | `minioadmin` | `minioadmin` | `http://localhost:9001` → Buckets S3 |
+| 🔐 **Keycloak Admin** | `admin` | `admin` | `http://localhost:8085` → Gestion Realm `tsh` |
 
-- [Microservice User](Backend/microservices/User/README.md)
-- [API Gateway](Backend/infrastructure/Gateway/README.md)
-- [Keycloak](Backend/infrastructure/keycloak/README.md)
+---
+
+<div align="center">
+  <sub>TSH — Trusted Student Housing · Projet 4DAS12 Groupe 3 · 2026</sub>
+</div>

@@ -1,5 +1,6 @@
 package tn.esprit.tsh.user.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tn.esprit.tsh.user.dto.ProfilUpdateRequest;
@@ -20,9 +21,17 @@ import java.util.UUID;
 public class UtilisateurServiceImpl implements IUtilisateurService {
 
     private final UtilisateurRepository utilisateurRepository;
+    private final UserEventProducer userEventProducer;
 
     public UtilisateurServiceImpl(UtilisateurRepository utilisateurRepository) {
+        this(utilisateurRepository, null);
+    }
+
+    @Autowired
+    public UtilisateurServiceImpl(UtilisateurRepository utilisateurRepository,
+                                  @Autowired(required = false) UserEventProducer userEventProducer) {
         this.utilisateurRepository = utilisateurRepository;
+        this.userEventProducer = userEventProducer;
     }
 
     @Override
@@ -58,13 +67,19 @@ public class UtilisateurServiceImpl implements IUtilisateurService {
                     user.setKeycloakId(keycloakId);
                     return utilisateurRepository.save(user);
                 })
-                .or(() -> Optional.of(utilisateurRepository.save(Utilisateur.builder()
-                        .keycloakId(keycloakId)
-                        .email(email)
-                        .nom(nom != null && !nom.isBlank() ? nom : email)
-                        .role(role)
-                        .verifie(true)
-                        .build())));
+                .or(() -> {
+                    Utilisateur nouvelUtilisateur = utilisateurRepository.save(Utilisateur.builder()
+                            .keycloakId(keycloakId)
+                            .email(email)
+                            .nom(nom != null && !nom.isBlank() ? nom : email)
+                            .role(role)
+                            .verifie(true)
+                            .build());
+                    if (userEventProducer != null) {
+                        userEventProducer.publierEvenement("USER_CREATED", email);
+                    }
+                    return Optional.of(nouvelUtilisateur);
+                });
     }
 
     @Override
@@ -99,6 +114,11 @@ public class UtilisateurServiceImpl implements IUtilisateurService {
             // Chaine vide = l'utilisateur a efface son numero ; null = champ non fourni.
             user.setTelephone(dto.telephone().isBlank() ? null : dto.telephone());
         }
-        return UtilisateurMapper.toResponse(utilisateurRepository.save(user));
+
+        Utilisateur maj = utilisateurRepository.save(user);
+        if (userEventProducer != null) {
+            userEventProducer.publierEvenement("USER_UPDATED", maj.getEmail());
+        }
+        return UtilisateurMapper.toResponse(maj);
     }
 }

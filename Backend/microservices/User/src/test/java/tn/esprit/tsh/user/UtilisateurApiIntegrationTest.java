@@ -20,6 +20,7 @@ import tn.esprit.tsh.user.entity.RoleType;
 import tn.esprit.tsh.user.entity.Utilisateur;
 import tn.esprit.tsh.user.repository.UtilisateurRepository;
 import tn.esprit.tsh.user.service.MediaStorageService;
+import tn.esprit.tsh.user.service.UserEventProducer;
 
 import java.util.List;
 import java.util.Map;
@@ -50,6 +51,9 @@ class UtilisateurApiIntegrationTest {
 
     @MockBean
     private MediaStorageService mediaStorageService;
+
+    @MockBean
+    private UserEventProducer userEventProducer;
 
     @TestConfiguration
     static class JwtTestConfig {

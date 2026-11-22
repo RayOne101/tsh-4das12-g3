@@ -58,6 +58,16 @@ public class GatewayApplication {
                         .path("/api/transports/**", "/api/transport/**", "/api/demenagement/**")
                         .uri("lb://TRANSPORT"))
 
+                // Routes OpenAPI / Swagger pour le portail central Swagger UI (/swagger-ui.html)
+                .route("user-docs", r -> r.path("/v3/api-docs/user").filters(f -> f.setPath("/v3/api-docs")).uri("lb://USER"))
+                .route("housing-docs", r -> r.path("/v3/api-docs/housing").filters(f -> f.setPath("/v3/api-docs")).uri("lb://HOUSING"))
+                .route("colocation-docs", r -> r.path("/v3/api-docs/colocation").filters(f -> f.setPath("/v3/api-docs")).uri("lb://COLOCATION"))
+                .route("contract-docs", r -> r.path("/v3/api-docs/contract").filters(f -> f.setPath("/v3/api-docs")).uri("lb://CONTRACT"))
+                .route("communication-docs", r -> r.path("/v3/api-docs/communication").filters(f -> f.setPath("/v3/api-docs")).uri("lb://COMMUNICATION"))
+                .route("review-docs", r -> r.path("/v3/api-docs/review").filters(f -> f.setPath("/v3/api-docs")).uri("lb://REVIEW"))
+                .route("marketplace-docs", r -> r.path("/v3/api-docs/marketplace").filters(f -> f.setPath("/v3/api-docs")).uri("lb://MARKETPLACE"))
+                .route("transport-docs", r -> r.path("/v3/api-docs/transport").filters(f -> f.setPath("/v3/api-docs")).uri("lb://TRANSPORT"))
+
                 .build();
     }
 }

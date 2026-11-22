@@ -104,6 +104,7 @@ Toutes les briques du projet sont centralisées et accessibles via des ports dé
 |:---:|:---|:---:|:---|:---|:---|
 | 🟢 | **Frontend** | `5173` | [http://localhost:5173](http://localhost:5173) | Application Web étudiante (Vite + React) | — |
 | 🟢 | **API Gateway** | `8083` | [http://localhost:8083](http://localhost:8083) | Point d'entrée unique, routage dynamique, CORS | — |
+| 🟢 | **Swagger UI (Gateway)**| `8083` | [http://localhost:8083/swagger-ui.html](http://localhost:8083/swagger-ui.html) | Portail Swagger UI central avec sélecteur de microservices | — |
 | 🟢 | **Eureka Discovery** | `8761` | [http://localhost:8761](http://localhost:8761) | Tableau de bord de découverte des services | — |
 | 🟢 | **Keycloak IAM** | `8085` | [http://localhost:8085](http://localhost:8085) | Serveur OAuth2 / OIDC, gestion des utilisateurs & rôles | `admin` / `admin` |
 | 🟢 | **User Service** | `8762` | [http://localhost:8762](http://localhost:8762) | Profils, rôles, avatars, auto-provisionnement | — |
@@ -222,6 +223,18 @@ Les comptes de démonstration suivants sont pré-chargés dans le Realm Keycloak
 | 🛡️ **Administrateur** | `admin@tsh.tn` | `admin123` | `/admin/connexion` → Console de modération |
 | 📦 **MinIO Console** | `minioadmin` | `minioadmin` | `http://localhost:9001` → Buckets S3 |
 | 🔐 **Keycloak Admin** | `admin` | `admin` | `http://localhost:8085` → Gestion Realm `tsh` |
+
+---
+
+## 🧪 Tests & Collection Postman
+
+Une collection Postman complète et prête à l'emploi est fournie pour tester l'ensemble de l'architecture :
+- 📁 **Fichier à importer dans Postman** : [`Documentation/TSH_Postman_Collection.json`](Documentation/TSH_Postman_Collection.json)
+- **Contenu pré-configuré** :
+  1. **Authentification OIDC** : Récupération et sauvegarde automatique des tokens JWT étudiant et admin.
+  2. **API Gateway & User Service** : Consultation profil, mise à jour (déclenche Kafka), upload photo MinIO.
+  3. **Santé & Monitoring** : Actuator Health Gateway & User, traces distribuées Zipkin.
+  4. **Sécurité RBAC** : Vérification des accès refusés (401 sans token, 403 route admin avec token étudiant).
 
 ---
 

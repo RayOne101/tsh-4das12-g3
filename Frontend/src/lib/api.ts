@@ -80,3 +80,15 @@ export function uploadAvatar(file: File) {
   body.append('file', file)
   return apiFetch<Profile>('/utilisateurs/me/photo', { method: 'POST', body })
 }
+
+/**
+ * Après inscription Keycloak, enregistre le profil dans le microservice User.
+ * Appelé une seule fois depuis la page Onboarding.
+ */
+export function registerProfile(nom: string, email: string, telephone: string | null) {
+  return apiFetch<Profile>('/utilisateurs/me', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nom, email, telephone }),
+  })
+}

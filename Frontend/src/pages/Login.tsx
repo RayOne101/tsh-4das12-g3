@@ -67,8 +67,16 @@ export function Login() {
     }, 450)
   }
 
+  // Redirige vers la page "mot de passe oublié" de Keycloak.
+  // En mode démo (sans Keycloak), affiche juste un message.
   const handleForgotPassword = () => {
-    toast(`Un e-mail de réinitialisation a été simulé pour ${email || 'ton adresse'}.`, 'info')
+    if (authEnabled) {
+      const keycloakUrl = import.meta.env.VITE_KEYCLOAK_URL ?? 'http://localhost:8085'
+      const realm = import.meta.env.VITE_KEYCLOAK_REALM ?? 'tsh'
+      window.location.href = `${keycloakUrl}/realms/${realm}/login-actions/reset-credentials?client_id=tsh-web`
+    } else {
+      toast('Mot de passe oublié — fonctionnel uniquement avec Keycloak démarré.', 'info')
+    }
   }
 
   return (

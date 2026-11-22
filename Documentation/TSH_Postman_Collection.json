@@ -1,0 +1,328 @@
+{
+  "info": {
+    "name": "TSH — Trusted Student Housing API",
+    "_postman_id": "tsh-api-collection-v1",
+    "description": "Collection complète des requêtes API pour la plateforme TSH (Architecture Microservices).\nComprend l'authentification Keycloak (OIDC), le routage API Gateway, la gestion des profils (User service), le stockage MinIO, Actuator et la sécurité RBAC.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "gatewayUrl",
+      "value": "http://localhost:8083",
+      "type": "string"
+    },
+    {
+      "key": "keycloakUrl",
+      "value": "http://localhost:8085",
+      "type": "string"
+    },
+    {
+      "key": "userToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentification Keycloak (OIDC / OAuth2)",
+      "item": [
+        {
+          "name": "1.1 Obtenir Token Étudiant (ROPC)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access_token) {",
+                  "    pm.collectionVariables.set('userToken', jsonData.access_token);",
+                  "    console.log('Token étudiant enregistré avec succès.');",
+                  "}",
+                  "pm.test('Status code 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "password", "type": "text" },
+                { "key": "client_id", "value": "tsh-cli", "type": "text" },
+                { "key": "username", "value": "etudiant@tsh.tn", "type": "text" },
+                { "key": "password", "value": "etudiant123", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{keycloakUrl}}/realms/tsh/protocol/openid-connect/token",
+              "host": ["{{keycloakUrl}}"],
+              "path": ["realms", "tsh", "protocol", "openid-connect", "token"]
+            },
+            "description": "Récupère un JWT étudiant auprès de Keycloak et l'enregistre automatiquement dans la variable {{userToken}}."
+          }
+        },
+        {
+          "name": "1.2 Obtenir Token Admin (ROPC)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access_token) {",
+                  "    pm.collectionVariables.set('adminToken', jsonData.access_token);",
+                  "    console.log('Token administrateur enregistré avec succès.');",
+                  "}",
+                  "pm.test('Status code 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "password", "type": "text" },
+                { "key": "client_id", "value": "tsh-cli", "type": "text" },
+                { "key": "username", "value": "admin@tsh.tn", "type": "text" },
+                { "key": "password", "value": "admin123", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{keycloakUrl}}/realms/tsh/protocol/openid-connect/token",
+              "host": ["{{keycloakUrl}}"],
+              "path": ["realms", "tsh", "protocol", "openid-connect", "token"]
+            },
+            "description": "Récupère un JWT administrateur (ROLE_ADMIN) et l'enregistre dans {{adminToken}}."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. API Gateway & Microservice User",
+      "item": [
+        {
+          "name": "2.1 Consulter Mon Profil (/api/utilisateurs/me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayUrl}}/api/utilisateurs/me",
+              "host": ["{{gatewayUrl}}"],
+              "path": ["api", "utilisateurs", "me"]
+            },
+            "description": "Appel via Gateway (port 8083) vers le microservice User. Crée automatiquement le profil en base s'il s'agit de la première connexion (Auto-provisioning JIT)."
+          }
+        },
+        {
+          "name": "2.2 Mettre à Jour Mon Profil (/api/utilisateurs/me)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Etudiant Test\",\n  \"email\": \"etudiant@tsh.tn\",\n  \"telephone\": \"+216 22 123 456\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayUrl}}/api/utilisateurs/me",
+              "host": ["{{gatewayUrl}}"],
+              "path": ["api", "utilisateurs", "me"]
+            },
+            "description": "Met à jour le nom et téléphone de l'étudiant. Déclenche un événement asynchrone sur le topic Kafka 'user-events'."
+          }
+        },
+        {
+          "name": "2.3 Uploader une Photo de Profil MinIO S3",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{gatewayUrl}}/api/utilisateurs/me/photo",
+              "host": ["{{gatewayUrl}}"],
+              "path": ["api", "utilisateurs", "me", "photo"]
+            },
+            "description": "Envoie un fichier image au microservice User, qui le stocke dans le bucket MinIO 'tsh-avatars' et enregistre l'URL en base."
+          }
+        },
+        {
+          "name": "2.4 Admin — Lister tous les Utilisateurs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayUrl}}/api/utilisateurs",
+              "host": ["{{gatewayUrl}}"],
+              "path": ["api", "utilisateurs"]
+            },
+            "description": "Route sécurisée réservée à ROLE_ADMIN. Renvoie la liste de tous les profils de la base tsh_users."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Observabilité & Santé (Actuator & Tracing)",
+      "item": [
+        {
+          "name": "3.1 Santé de l'API Gateway (/actuator/health)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayUrl}}/actuator/health",
+              "host": ["{{gatewayUrl}}"],
+              "path": ["actuator", "health"]
+            },
+            "description": "Vérifie l'état de la Gateway et la découverte des microservices dans Eureka."
+          }
+        },
+        {
+          "name": "3.2 Santé du Microservice User (/actuator/health)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8762/actuator/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8762",
+              "path": ["actuator", "health"]
+            },
+            "description": "Vérifie l'état du microservice User et sa connexion à PostgreSQL."
+          }
+        },
+        {
+          "name": "3.3 Traces Distribuées Zipkin (/api/v2/traces)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:9411/api/v2/traces",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "9411",
+              "path": ["api", "v2", "traces"]
+            },
+            "description": "Récupère les traces d'appels collectées par Zipkin montrant le cheminement des requêtes Gateway -> Microservices."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Tests de Sécurité & Contrôles d'Accès (RBAC)",
+      "item": [
+        {
+          "name": "4.1 Sans Jeton -> Doit refuser avec 401 Unauthorized",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Accès refusé sans jeton (401)', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayUrl}}/api/utilisateurs/me",
+              "host": ["{{gatewayUrl}}"],
+              "path": ["api", "utilisateurs", "me"]
+            },
+            "description": "Vérifie qu'un appel anonyme sans Authorization header est rejeté avec HTTP 401."
+          }
+        },
+        {
+          "name": "4.2 Token Étudiant sur Route Admin -> Doit refuser avec 403 Forbidden",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Accès interdit aux non-admins (403)', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayUrl}}/api/utilisateurs",
+              "host": ["{{gatewayUrl}}"],
+              "path": ["api", "utilisateurs"]
+            },
+            "description": "Vérifie le contrôle d'accès basé sur les rôles (RBAC) : un token avec ROLE_USER ne peut pas accéder aux routes ROLE_ADMIN."
+          }
+        }
+      ]
+    }
+  ]
+}

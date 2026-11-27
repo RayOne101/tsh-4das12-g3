@@ -177,42 +177,85 @@ tsh-4das12-g3/
 - Le service `User` publie des événements sur le topic `user-events` (ex: `USER_CREATED`, `USER_UPDATED`).
 - Permet aux services comme `Communication` d'envoyer des notifications sans couplage fort.
 
-### 3. 📊 Traçabilité Distribuée (Zipkin & Micrometer)
-- Chaque requête entrante reçoit un `traceId` unique via l'API Gateway.
-- L'en-tête de traçage est propagé vers les microservices.
-- Accessible en temps réel sur [http://localhost:9411](http://localhost:9411) pour diagnostiquer la latence et les erreurs.
+### 3. 📊 Observabilité & Supervision (Grafana, Prometheus, Zipkin)
+- **Grafana (`http://localhost:3000`, `admin`/`admin`)** : Tableau de bord central préconfiguré (`TSH — Centre de Supervision Microservices`) regroupant l'état `UP`/`OFF` des services, les métriques RED (débit HTTP, erreurs 5xx, latence P95), le pool PostgreSQL HikariCP, les événements Kafka et la JVM.
+- **Prometheus (`http://localhost:9090`)** : Collecte automatique des métriques `/actuator/prometheus` de tous les microservices.
+- **Zipkin (`http://localhost:9411`)** : Traçage distribué (`traceId` unique propagé de la Gateway vers les microservices) pour diagnostiquer la latence et les erreurs.
 
 ### 4. 🗄️ Stockage d'Objets (MinIO S3)
 Quatre buckets pré-configurés :
-- `tsh-avatars` : Photos de profil des utilisateurs.
+- `tsh-avatars` : Photos de profil des utilisateurs (obligatoire à l'inscription).
 - `tsh-housing` : Photos des annonces d'appartements et colocations.
 - `tsh-marketplace` : Photos des meubles d'occasion.
 - `tsh-contracts` : Fichiers PDF des baux signés.
 
 ---
 
+## 🔌 Routes Gateway & Endpoints User Service
+
+### API Gateway (`http://localhost:8083`)
+Le Gateway résout dynamiquement les microservices via Eureka (`lb://SERVICE`) et gère le CORS (`http://localhost:5173`, `http://127.0.0.1:5173`). Il transmet le header `Authorization` aux microservices qui appliquent Spring Security.
+
+| Préfixe | Microservice cible |
+|---|---|
+| `/api/utilisateurs/**`, `/api/admin/**` | `lb://USER` |
+| `/api/logements/**` | `lb://HOUSING` |
+| `/api/colocations/**` | `lb://COLOCATION` |
+| `/api/contrats/**` | `lb://CONTRACT` |
+| `/api/messages/**` | `lb://COMMUNICATION` |
+| `/api/avis/**` | `lb://REVIEW` |
+| `/api/meubles/**` | `lb://MARKETPLACE` |
+| `/api/transports/**` | `lb://TRANSPORT` |
+
+### Endpoints du Microservice User (`http://localhost:8762`)
+- **Swagger UI** : [http://localhost:8762/swagger-ui.html](http://localhost:8762/swagger-ui.html) (ou centralisé via [http://localhost:8083/swagger-ui.html](http://localhost:8083/swagger-ui.html))
+
+| Méthode | Route | Accès requis | Description |
+|---|---|---|---|
+| `POST` | `/api/utilisateurs/register` | Public | Inscription complète (crée le compte Keycloak, upload l'avatar obligatoire sur MinIO, enregistre en BDD et publie `USER_CREATED` sur Kafka) |
+| `GET` | `/api/utilisateurs/me` | JWT valide (`ROLE_USER` ou `ROLE_ADMIN`) | Consulter le profil connecté (auto-provisionné au premier appel) |
+| `PUT` | `/api/utilisateurs/me` | JWT valide | Mettre à jour `nom`, `email`, `telephone` |
+| `POST` | `/api/utilisateurs/me/photo` | JWT valide | Mettre à jour l'avatar (`multipart/form-data`, JPEG/PNG/WebP, 2 Mo max) |
+| `GET` | `/api/utilisateurs` | `ROLE_ADMIN` | Lister tous les utilisateurs enregistrés |
+
+---
+
 ## 🚀 Guide de Démarrage Rapide
 
+### Prérequis
+- **Java 17** (JDK 17) & **Maven 3.8+** (ou celui intégré dans IntelliJ)
+- **Docker Desktop** démarré
+- **Node.js 18+** (pour le Frontend)
+
 ### Étape 1 : Démarrer l'infrastructure Docker
-```bash
+```powershell
 cd Backend
 docker compose up -d
 ```
-> Vérifiez que les 7 conteneurs sont `Up` avec `docker ps`.
+> Lance PostgreSQL (`tsh_users` + `keycloak`), Keycloak (import auto du realm `tsh`), MinIO, Kafka, Zipkin, PgWeb, Prometheus et Grafana.
+> Note : `tsh-realm.json` n'est importé que si le realm `tsh` n'existe pas encore dans PostgreSQL.
 
-### Étape 2 : Lancer les services Spring Boot (dans votre IDE)
-Lancer dans l'ordre :
-1. **`EurekaServerApplication`** (`Backend/infrastructure/Eureka`)
-2. **`GatewayApplication`** (`Backend/infrastructure/Gateway`)
-3. **`UserApplication`** (`Backend/microservices/User`)
+### Étape 2 : Lancer les services Spring Boot (dans IntelliJ IDEA, dans l'ordre)
+1. **`EurekaServerApplication`** (`Backend/infrastructure/Eureka` — port `8761`)
+2. **`GatewayApplication`** (`Backend/infrastructure/Gateway` — port `8083`)
+3. **`UserApplication`** (`Backend/microservices/User` — port `8762`)
+4. *(Optionnel selon votre module)* Vos autres microservices (`Housing`, `Colocation`, `Contract`, `Communication`, `Review`, `Marketplace`, `Transport`)
 
 ### Étape 3 : Lancer le Frontend
-```bash
+Vérifiez `Frontend/.env` (`VITE_KEYCLOAK_URL=http://localhost:8085`, `VITE_KEYCLOAK_REALM=tsh`, `VITE_KEYCLOAK_CLIENT_ID=tsh-web`, `VITE_KEYCLOAK_ADMIN_CLIENT_ID=tsh-admin-web`, `VITE_USE_MOCKS=false`), puis :
+```powershell
 cd Frontend
 npm install
 npm run dev
 ```
 Rendez-vous sur [http://localhost:5173](http://localhost:5173).
+
+### Étape 4 : Exécuter les Tests Automatisés (User Service)
+```powershell
+cd Backend/microservices/User
+mvn test
+```
+> Les **18 tests** (unitaires + intégration H2/MockMvc) doivent afficher `BUILD SUCCESS`.
 
 ---
 

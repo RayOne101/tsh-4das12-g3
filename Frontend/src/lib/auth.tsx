@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { Role } from './data'
 import { avatar } from './data'
-import { setAccessToken } from './api'
+import { USE_MOCKS, getProfile, setAccessToken } from './api'
 import {
   AUTH_ENABLED,
   endSession,
@@ -108,6 +108,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return null
     }
   })
+  const [profileOverride, setProfileOverride] = useState<{
+    name?: string
+    email?: string
+    image?: string
+  } | null>(null)
   const [demoSession, setDemoSession] = useState<Session | null>(() =>
     AUTH_ENABLED ? null : readSession(),
   )
@@ -116,6 +121,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Le jeton d'acces est lu par lib/api.ts a chaque appel.
   useEffect(() => {
     setAccessToken(tokens?.accessToken ?? null)
+  }, [tokens])
+
+  // Synchronise le vrai profil (nom, email, photoUrl MinIO) depuis le microservice User apres connexion.
+  useEffect(() => {
+    if (!AUTH_ENABLED || USE_MOCKS || !tokens?.accessToken) {
+      setProfileOverride(null)
+      return
+    }
+    let cancelled = false
+    setAccessToken(tokens.accessToken)
+    getProfile()
+      .then((profile) => {
+        if (cancelled) return
+        setProfileOverride({
+          name: profile.nom,
+          email: profile.email,
+          image: profile.photoUrl ?? undefined,
+        })
+        if (profile.photoUrl) {
+          try {
+            localStorage.setItem('tsh.user.avatar', profile.photoUrl)
+          } catch {
+            // ignore
+          }
+          setAvatarOverride(profile.photoUrl)
+        }
+      })
+      .catch(() => {
+        // Si le microservice User est momentannement indisponible, on garde les claims du JWT.
+      })
+    return () => {
+      cancelled = true
+    }
   }, [tokens])
 
   useEffect(() => {
@@ -156,12 +194,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password: string,
       options?: { requireAdmin?: boolean },
     ) => {
+      try {
+        localStorage.removeItem('tsh.user.avatar')
+      } catch {
+        // ignore
+      }
+      setAvatarOverride(null)
+      setProfileOverride(null)
+
       const next = await signInWithPassword(target, username, password)
       if (options?.requireAdmin && !isAdmin(next)) {
         storeTokens(null)
         setTokens(null)
         throw new Error('ROLE_ADMIN requis')
       }
+      setAccessToken(next.accessToken)
       setTokens(next)
       return next
     },
@@ -185,6 +232,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // stockage local indisponible
     }
     setAvatarOverride(null)
+    setProfileOverride(null)
     if (AUTH_ENABLED) {
       setTokens(null)
       storeTokens(null)
@@ -221,9 +269,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const session = useMemo(() => {
     const base = tokens ? sessionFromTokens(tokens) : demoSession
     if (!base) return null
-    if (avatarOverride) return { ...base, image: avatarOverride }
-    return base
-  }, [tokens, demoSession, avatarOverride])
+    return {
+      ...base,
+      ...(profileOverride?.name ? { name: profileOverride.name } : {}),
+      ...(profileOverride?.email ? { email: profileOverride.email } : {}),
+      image: avatarOverride || profileOverride?.image || base.image,
+    }
+  }, [tokens, demoSession, avatarOverride, profileOverride])
 
   const value = useMemo<AuthContextValue>(
     () => ({

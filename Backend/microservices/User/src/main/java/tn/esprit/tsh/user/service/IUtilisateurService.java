@@ -13,6 +13,7 @@ public interface IUtilisateurService {
     List<UtilisateurResponse> listerUtilisateurs();
     Optional<Utilisateur> trouverParId(UUID id);
     Optional<Utilisateur> trouverOuCreerParKeycloakId(String keycloakId, String email, String nom, RoleType role);
+    UtilisateurResponse inscrireUtilisateur(String keycloakId, String nom, String email, String telephone, String photoUrl);
     UtilisateurResponse mettreAJourProfil(UUID id, ProfilUpdateRequest dto);
     UtilisateurResponse mettreAJourPhoto(UUID id, String photoUrl);
 }

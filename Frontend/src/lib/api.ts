@@ -91,6 +91,41 @@ export function uploadAvatar(file: File) {
 }
 
 /**
+ * Inscription complete : cree le compte dans Keycloak, stocke la photo obligatoire
+ * sur MinIO et cree le profil dans le microservice User.
+ */
+export async function registerAccount(params: {
+  nom: string
+  email: string
+  telephone: string | null
+  password: string
+  file: File
+}): Promise<Profile> {
+  const body = new FormData()
+  body.append('nom', params.nom)
+  body.append('email', params.email)
+  if (params.telephone) body.append('telephone', params.telephone)
+  body.append('password', params.password)
+  body.append('file', params.file)
+
+  const response = await fetch(`${API_URL}/utilisateurs/register`, {
+    method: 'POST',
+    body,
+  })
+  if (!response.ok) {
+    let message = `Erreur d'inscription (${response.status})`
+    try {
+      const problem = (await response.json()) as { title?: string; detail?: string }
+      message = problem.detail ?? problem.title ?? message
+    } catch {
+      // reponse sans corps JSON
+    }
+    throw new Error(message)
+  }
+  return (await response.json()) as Profile
+}
+
+/**
  * Après inscription Keycloak, enregistre le profil dans le microservice User.
  * Appelé une seule fois depuis la page Onboarding.
  */

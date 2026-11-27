@@ -1,0 +1,20 @@
+apiVersion: 1
+
+datasources:
+  # Source 1 : Prometheus (metriques JVM, HTTP, BDD, Kafka)
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      httpMethod: POST
+
+  # Source 2 : Zipkin (traces distribuees des requetes HTTP)
+  - name: Zipkin
+    type: zipkin
+    access: proxy
+    url: http://zipkin:9411
+    jsonData:
+      tracesToLogsV2:
+        customQuery: false

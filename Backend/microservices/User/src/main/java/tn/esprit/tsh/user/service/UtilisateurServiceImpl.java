@@ -83,6 +83,32 @@ public class UtilisateurServiceImpl implements IUtilisateurService {
     }
 
     @Override
+    public UtilisateurResponse inscrireUtilisateur(String keycloakId, String nom, String email, String telephone, String photoUrl) {
+        if (utilisateurRepository.existsByEmail(email)) {
+            throw new ConflictException("Adresse email deja utilisee");
+        }
+        String cleanPhone = telephone != null && !telephone.isBlank() ? telephone.trim() : null;
+        if (cleanPhone != null && utilisateurRepository.existsByTelephone(cleanPhone)) {
+            throw new ConflictException("Numero de telephone deja utilise");
+        }
+
+        Utilisateur saved = utilisateurRepository.save(Utilisateur.builder()
+                .keycloakId(keycloakId)
+                .nom(nom.trim())
+                .email(email.trim().toLowerCase())
+                .telephone(cleanPhone)
+                .photoUrl(photoUrl)
+                .role(RoleType.ROLE_USER)
+                .verifie(true)
+                .build());
+
+        if (userEventProducer != null) {
+            userEventProducer.publierEvenement("USER_CREATED", saved.getEmail());
+        }
+        return UtilisateurMapper.toResponse(saved);
+    }
+
+    @Override
     public UtilisateurResponse mettreAJourPhoto(UUID id, String photoUrl) {
         Utilisateur user = utilisateurRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur", id));

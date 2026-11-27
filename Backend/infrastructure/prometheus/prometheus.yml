@@ -1,0 +1,88 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Microservice User (port 8762 en local, 8763 selon application.properties)
+  - job_name: 'user-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8762']
+        labels:
+          service: 'user'
+          environment: 'dev'
+
+  # Gateway (port 8083)
+  - job_name: 'gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8083']
+        labels:
+          service: 'gateway'
+          environment: 'dev'
+
+  # Eureka (port 8761)
+  - job_name: 'eureka'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8761']
+        labels:
+          service: 'eureka'
+          environment: 'dev'
+
+  # Services equipe (ajouter quand ils tournent)
+  - job_name: 'housing-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8763']
+        labels:
+          service: 'housing'
+          environment: 'dev'
+
+  - job_name: 'colocation-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8764']
+        labels:
+          service: 'colocation'
+          environment: 'dev'
+
+  - job_name: 'contract-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8765']
+        labels:
+          service: 'contract'
+          environment: 'dev'
+
+  - job_name: 'communication-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8766']
+        labels:
+          service: 'communication'
+          environment: 'dev'
+
+  - job_name: 'review-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8767']
+        labels:
+          service: 'review'
+          environment: 'dev'
+
+  - job_name: 'marketplace-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8768']
+        labels:
+          service: 'marketplace'
+          environment: 'dev'
+
+  - job_name: 'transport-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8769']
+        labels:
+          service: 'transport'
+          environment: 'dev'

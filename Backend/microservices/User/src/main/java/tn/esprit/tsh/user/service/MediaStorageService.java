@@ -36,10 +36,10 @@ public class MediaStorageService {
         this.publicUrl = publicUrl;
     }
 
-    /** Televerse une photo de profil et renvoie l'URL a enregistrer sur l'utilisateur. */
-    public String uploadAvatar(String keycloakId, MultipartFile file) {
+    /** Valide la presence, la taille et le type MIME d'une photo avant upload. */
+    public String validateAvatar(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Fichier image manquant");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo de profil obligatoire");
         }
         if (file.getSize() > MAX_SIZE_BYTES) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Image trop lourde (2 Mo maximum)");
@@ -48,6 +48,12 @@ public class MediaStorageService {
         if (extension == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Format non supporte (jpeg, png, webp)");
         }
+        return extension;
+    }
+
+    /** Televerse une photo de profil et renvoie l'URL a enregistrer sur l'utilisateur. */
+    public String uploadAvatar(String keycloakId, MultipartFile file) {
+        String extension = validateAvatar(file);
 
         // Nom genere cote serveur : on ne fait jamais confiance au nom envoye par le client.
         String objectKey = "avatars/" + keycloakId + "/" + UUID.randomUUID() + "." + extension;

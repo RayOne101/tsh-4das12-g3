@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
+  Camera,
+  Loader2,
   LogOut,
   Mail,
   Phone,
@@ -15,12 +17,18 @@ import { useToast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
 export function Profile() {
-  const { session, logout } = useAuth()
+  const { session, logout, updateSessionImage } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
   const fileInput = useRef<HTMLInputElement>(null)
   const [photo, setPhoto] = useState<string | undefined>(session?.image)
+  const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  // Synchronise avec la photo de session
+  useEffect(() => {
+    if (session?.image) setPhoto(session.image)
+  }, [session?.image])
 
   // En mode reel, le profil affiche vient du microservice User (pas des donnees d'API demo).
   useEffect(() => {
@@ -28,7 +36,10 @@ export function Profile() {
     getProfile()
       .then((profile) => {
         setForm({ nom: profile.nom, email: profile.email, telephone: profile.telephone ?? '' })
-        if (profile.photoUrl) setPhoto(profile.photoUrl)
+        if (profile.photoUrl) {
+          setPhoto(profile.photoUrl)
+          updateSessionImage(profile.photoUrl)
+        }
       })
       .catch((err: unknown) =>
         toast(err instanceof Error ? err.message : 'Profil indisponible', 'error'),
@@ -40,19 +51,43 @@ export function Profile() {
     const file = event.target.files?.[0]
     if (!file) return
 
-    // Sans backend (mode demo), on affiche juste un apercu local.
-    if (USE_MOCKS) {
-      setPhoto(URL.createObjectURL(file))
-      toast('Aperçu local — envoi réel désactivé en mode démo', 'info')
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      toast('Format non supporte (JPEG, PNG ou WebP uniquement)', 'error')
+      event.target.value = ''
       return
     }
 
+    const maxSizeBytes = 2 * 1024 * 1024
+    if (file.size > maxSizeBytes) {
+      toast('Image trop lourde (2 Mo maximum)', 'error')
+      event.target.value = ''
+      return
+    }
+
+    // Sans backend (mode demo), on affiche juste un apercu local.
+    if (USE_MOCKS) {
+      const previewUrl = URL.createObjectURL(file)
+      setPhoto(previewUrl)
+      updateSessionImage(previewUrl)
+      toast('Photo de profil mise a jour (apercu local)', 'info')
+      event.target.value = ''
+      return
+    }
+
+    setUploading(true)
     try {
       const profile = await uploadAvatar(file)
-      setPhoto(profile.photoUrl ?? undefined)
-      toast('Photo de profil enregistrée', 'success')
+      if (profile.photoUrl) {
+        setPhoto(profile.photoUrl)
+        updateSessionImage(profile.photoUrl)
+      }
+      toast('Photo de profil enregistree avec succes sur MinIO', 'success')
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Envoi de la photo impossible', 'error')
+    } finally {
+      setUploading(false)
+      event.target.value = ''
     }
   }
 
@@ -104,25 +139,49 @@ export function Profile() {
       />
 
       {/* Avatar card */}
-      <div className="mb-6 flex flex-wrap items-center gap-4 rounded-[1.5rem] border border-ink/[0.07] bg-white p-5">
-        <div className="relative">
-          <img src={photo} alt="" className="size-16 rounded-full object-cover" />
+      <div className="mb-6 flex flex-wrap items-center gap-5 rounded-[1.5rem] border border-ink/[0.07] bg-white p-5 sm:p-6 shadow-sm">
+        <div className="relative group">
+          <div className="size-20 overflow-hidden rounded-full border-2 border-cream-deep bg-cream shadow-inner">
+            {photo ? (
+              <img
+                src={photo}
+                alt={session?.name || 'Photo de profil'}
+                className="size-full object-cover"
+              />
+            ) : (
+              <div className="grid size-full place-items-center text-ink-soft">
+                <UserRound className="size-10" />
+              </div>
+            )}
+          </div>
+
+          {uploading && (
+            <div className="absolute inset-0 grid place-items-center rounded-full bg-ink/60 text-white backdrop-blur-[1px]">
+              <Loader2 className="size-6 animate-spin text-cream" />
+            </div>
+          )}
+
           <input
             ref={fileInput}
             type="file"
             accept="image/jpeg,image/png,image/webp"
             onChange={handlePhoto}
             className="hidden"
+            id="avatar-file-input"
           />
+
           <button
             type="button"
             onClick={() => fileInput.current?.click()}
-            className="absolute -bottom-1 -right-1 grid size-6 place-items-center rounded-full border-2 border-white bg-ink text-cream"
+            disabled={uploading}
+            className="absolute -bottom-1 -right-1 grid size-7 place-items-center rounded-full border-2 border-white bg-ink text-cream shadow-md transition hover:scale-105 hover:bg-clay-deep disabled:opacity-50"
+            title="Changer la photo"
             aria-label="Changer la photo"
           >
-            <Upload className="size-3" />
+            <Camera className="size-3.5" />
           </button>
         </div>
+
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-[18px] font-semibold tracking-[-0.02em]">{session?.name}</p>
@@ -130,9 +189,33 @@ export function Profile() {
               {session?.role === 'admin' ? 'Administrateur' : 'Membre TSH'}
             </span>
           </div>
-          <p className="mt-1 text-[12px] text-ink-soft">
+          <p className="mt-0.5 text-[12px] text-ink-soft">
             {session?.email}
           </p>
+
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => fileInput.current?.click()}
+              disabled={uploading}
+              className="inline-flex items-center gap-2 rounded-xl border border-ink/15 bg-white px-3 py-1.5 text-[12px] font-medium text-ink shadow-sm transition hover:bg-cream hover:border-ink/25 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin text-ink-soft" />
+                  Téléversement en cours...
+                </>
+              ) : (
+                <>
+                  <Upload className="size-3.5 text-ink-soft" />
+                  Téléverser une photo
+                </>
+              )}
+            </button>
+            <span className="text-[11px] text-ink-soft">
+              JPEG, PNG ou WebP (max 2 Mo) · MinIO S3
+            </span>
+          </div>
         </div>
       </div>
 

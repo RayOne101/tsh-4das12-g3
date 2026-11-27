@@ -1,14 +1,18 @@
-import { useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
   ArrowRight,
   Building2,
   Check,
+  Eye,
+  EyeOff,
   GraduationCap,
+  Loader2,
   Lock,
   Mail,
   Phone,
+  Upload,
   User,
 } from 'lucide-react'
 import { Brand } from '@/components/Brand'
@@ -16,14 +20,20 @@ import { useAuth } from '@/lib/auth'
 import type { Role } from '@/lib/data'
 import { useToast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
-import { USE_MOCKS, registerProfile } from '@/lib/api'
+import { USE_MOCKS, registerAccount } from '@/lib/api'
 
 export function Onboarding() {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, signIn, authEnabled, updateSessionImage } = useAuth()
   const { toast } = useToast()
   const [step, setStep] = useState(1)
   const [role, setRole] = useState<Role>('student')
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState({
     nom: '',
     email: '',
@@ -33,41 +43,114 @@ export function Onboarding() {
   })
   const [consent, setConsent] = useState(false)
 
+  const handleAvatarSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const allowed = ['image/jpeg', 'image/png', 'image/webp']
+    if (!allowed.includes(file.type)) {
+      toast('Format non supporte (JPEG, PNG ou WebP uniquement)', 'error')
+      event.target.value = ''
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast('Image trop lourde (2 Mo maximum)', 'error')
+      event.target.value = ''
+      return
+    }
+    setAvatarFile(file)
+    setAvatarPreview(URL.createObjectURL(file))
+  }
+
   const set = (key: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [key]: value }))
+
+  // Controle de saisie et calcul de la force du mot de passe
+  const passwordChecks = useMemo(() => {
+    const p = form.password
+    return {
+      length: p.length >= 8,
+      upper: /[A-Z]/.test(p),
+      lower: /[a-z]/.test(p),
+      digit: /\d/.test(p),
+      special: /[^a-zA-Z0-9]/.test(p),
+    }
+  }, [form.password])
+
+  const passwordScore = useMemo(() => {
+    const passed = Object.values(passwordChecks).filter(Boolean).length
+    if (form.password.length === 0) return { bars: 0, label: '', color: 'bg-ink/10', text: 'text-ink-soft' }
+    if (passed <= 2) return { bars: 1, label: 'Faible', color: 'bg-rust', text: 'text-rust' }
+    if (passed === 3) return { bars: 2, label: 'Moyen', color: 'bg-amber-500', text: 'text-amber-600' }
+    if (passed === 4) return { bars: 3, label: 'Bon', color: 'bg-lime-600', text: 'text-lime-700' }
+    return { bars: 4, label: 'Fort', color: 'bg-sage', text: 'text-sage' }
+  }, [passwordChecks, form.password.length])
+
+  const isPasswordStrong = Object.values(passwordChecks).every(Boolean)
+  const passwordsMatch = form.confirmPassword.length > 0 && form.password === form.confirmPassword
 
   const totalSteps = 2
 
   const canContinue =
     step === 1 ||
     (step === 2 &&
-      form.nom.trim().length > 1 &&
-      form.email.includes('@') &&
-      form.password.trim().length >= 6 &&
-      form.password === form.confirmPassword &&
+      avatarFile !== null &&
+      form.nom.trim().length >= 2 &&
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()) &&
+      isPasswordStrong &&
+      passwordsMatch &&
       consent)
 
   const finish = async () => {
-    // En mode réel (Keycloak actif) : on sauvegarde le profil dans le microservice User.
-    // En mode démo : on simule juste la connexion sans appel réseau.
-    if (!USE_MOCKS) {
-      try {
-        await registerProfile(
-          form.nom || 'Étudiant TSH',
-          form.email || 'etudiant@tsh.tn',
-          form.telephone.trim() || null,
-        )
-      } catch {
-        // Si le microservice est indisponible, on continue quand même.
-        // Le profil sera créé automatiquement au premier appel /me (JIT).
-      }
+    if (!avatarFile) {
+      toast('Une photo de profil est obligatoire pour creer votre compte.', 'error')
+      return
+    }
+    if (!isPasswordStrong) {
+      toast('Le mot de passe ne respecte pas les criteres de securite.', 'error')
+      return
     }
 
+    // Mode reel (Keycloak + Microservice User + MinIO + Kafka)
+    if (!USE_MOCKS && authEnabled) {
+      setSubmitting(true)
+      try {
+        const created = await registerAccount({
+          nom: form.nom.trim(),
+          email: form.email.trim(),
+          telephone: form.telephone.trim() || null,
+          password: form.password,
+          file: avatarFile,
+        })
+
+        // Connexion automatique avec le compte Keycloak nouvellement cree
+        await signIn('student', form.email.trim(), form.password)
+        if (created.photoUrl) {
+          updateSessionImage(created.photoUrl)
+        }
+
+        toast(`Bienvenue sur TSH, ${created.nom.split(' ')[0]} ! Ton compte est pret.`, 'success')
+        navigate('/logements')
+      } catch (err) {
+        toast(
+          err instanceof Error ? err.message : 'Creation du compte impossible.',
+          'error',
+        )
+      } finally {
+        setSubmitting(false)
+      }
+      return
+    }
+
+    // Mode demo sans backend
+    if (avatarPreview) {
+      updateSessionImage(avatarPreview)
+    }
     login(role, {
-      name: form.nom || 'Étudiant TSH',
-      email: form.email || 'etudiant@tsh.tn',
+      name: form.nom.trim() || 'Etudiant TSH',
+      email: form.email.trim() || 'etudiant@tsh.tn',
+      image: avatarPreview || undefined,
     })
-    toast(`Bienvenue sur TSH, ${form.nom.split(' ')[0] || ''} ! Ton compte est prêt.`, 'success')
+    toast(`Bienvenue sur TSH, ${form.nom.split(' ')[0] || ''} ! Ton compte est pret.`, 'success')
     navigate('/logements')
   }
 
@@ -190,6 +273,52 @@ export function Onboarding() {
                 </h2>
 
                 <div className="mt-5 grid gap-3.5 sm:grid-cols-2">
+                  {/* Photo de profil (obligatoire) */}
+                  <div
+                    className={cn(
+                      'flex items-center gap-4 rounded-2xl border p-3.5 sm:col-span-2 transition-colors',
+                      avatarFile
+                        ? 'border-sage/40 bg-sage/[0.04]'
+                        : 'border-clay/35 bg-cream/50',
+                    )}
+                  >
+                    <div className="relative size-14 shrink-0 overflow-hidden rounded-full border border-ink/10 bg-cream">
+                      {avatarPreview ? (
+                        <img src={avatarPreview} alt="Apercu" className="size-full object-cover" />
+                      ) : (
+                        <div className="grid size-full place-items-center text-ink-soft">
+                          <User className="size-6" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-semibold text-ink">
+                        Photo de profil <span className="text-rust">*</span>
+                      </p>
+                      <p className="text-[11px] text-ink-soft">
+                        JPEG, PNG ou WebP (max 2 Mo) ·{' '}
+                        <span className={cn('font-medium', avatarFile ? 'text-sage' : 'text-rust')}>
+                          {avatarFile ? 'Photo sélectionnée' : 'Obligatoire'}
+                        </span>
+                      </p>
+                    </div>
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleAvatarSelect}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-ink/15 bg-white px-3 py-1.5 text-[11.5px] font-medium text-ink transition hover:bg-cream"
+                    >
+                      <Upload className="size-3 text-ink-soft" />
+                      {avatarPreview ? 'Changer' : 'Choisir *'}
+                    </button>
+                  </div>
+
                   <div className="sm:col-span-2">
                     <label className="field-label" htmlFor="nom">
                       Nom complet
@@ -244,38 +373,104 @@ export function Onboarding() {
 
                   <div>
                     <label className="field-label" htmlFor="reg-password">
-                      Mot de passe
+                      Mot de passe <span className="text-rust">*</span>
                     </label>
                     <div className="relative">
                       <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-soft" />
                       <input
                         id="reg-password"
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
                         required
                         value={form.password}
                         onChange={(e) => set('password', e.target.value)}
                         placeholder="••••••••"
-                        className="field pl-9"
+                        className="field pl-9 pr-10"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((v) => !v)}
+                        aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-soft transition hover:text-ink"
+                      >
+                        {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                      </button>
                     </div>
+
+                    {form.password.length > 0 && (
+                      <div className="mt-2">
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4].map((i) => (
+                            <div
+                              key={i}
+                              className={cn(
+                                'h-1 flex-1 rounded-full transition-all',
+                                i <= passwordScore.bars ? passwordScore.color : 'bg-ink/10',
+                              )}
+                            />
+                          ))}
+                        </div>
+                        <div className="mt-1 flex items-center justify-between">
+                          <span className={cn('text-[10px] font-semibold', passwordScore.text)}>
+                            Force : {passwordScore.label}
+                          </span>
+                        </div>
+                        <ul className="mt-1.5 grid grid-cols-2 gap-1">
+                          {(
+                            [
+                              [passwordChecks.length, '8 caractères min.'],
+                              [passwordChecks.upper, 'Une majuscule'],
+                              [passwordChecks.lower, 'Une minuscule'],
+                              [passwordChecks.digit, 'Un chiffre'],
+                              [passwordChecks.special, 'Un caractère spécial'],
+                            ] as const
+                          ).map(([ok, label]) => (
+                            <li
+                              key={label}
+                              className={cn(
+                                'flex items-center gap-1 text-[10px]',
+                                ok ? 'text-sage font-medium' : 'text-ink-soft',
+                              )}
+                            >
+                              <Check className={cn('size-3 shrink-0', ok ? 'text-sage' : 'opacity-25')} />
+                              {label}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
 
                   <div>
                     <label className="field-label" htmlFor="reg-confirm">
-                      Confirmer mot de passe
+                      Confirmer mot de passe <span className="text-rust">*</span>
                     </label>
                     <div className="relative">
                       <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-soft" />
                       <input
                         id="reg-confirm"
-                        type="password"
+                        type={showConfirm ? 'text' : 'password'}
                         required
                         value={form.confirmPassword}
                         onChange={(e) => set('confirmPassword', e.target.value)}
                         placeholder="••••••••"
-                        className="field pl-9"
+                        className="field pl-9 pr-10"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirm((v) => !v)}
+                        aria-label={showConfirm ? 'Masquer la confirmation' : 'Afficher la confirmation'}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-soft transition hover:text-ink"
+                      >
+                        {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                      </button>
                     </div>
+                    {form.confirmPassword.length > 0 && (
+                      <p className={cn('mt-1 text-[10.5px]', passwordsMatch ? 'text-sage' : 'text-rust')}>
+                        {passwordsMatch
+                          ? '✓ Les mots de passe correspondent'
+                          : '✗ Les mots de passe ne correspondent pas'}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -327,11 +522,20 @@ export function Onboarding() {
                 <button
                   type="button"
                   onClick={finish}
-                  disabled={!canContinue}
+                  disabled={!canContinue || submitting}
                   className="btn-primary btn-sm"
                 >
-                  Créer mon compte TSH
-                  <Check className="size-3.5" />
+                  {submitting ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" />
+                      Création du compte...
+                    </>
+                  ) : (
+                    <>
+                      Créer mon compte TSH
+                      <Check className="size-3.5" />
+                    </>
+                  )}
                 </button>
               )}
             </div>

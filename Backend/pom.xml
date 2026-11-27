@@ -11,6 +11,7 @@
     <name>TSH Backend Parent</name>
 
     <modules>
+        <module>infrastructure/ConfigServer</module>
         <module>infrastructure/Eureka</module>
         <module>infrastructure/Gateway</module>
         <module>microservices</module>

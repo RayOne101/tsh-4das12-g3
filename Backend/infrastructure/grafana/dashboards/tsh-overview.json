@@ -109,6 +109,25 @@
       "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
       "id": 3,
       "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "title": "Eureka Server",
+      "type": "stat",
+      "targets": [{ "datasource": "Prometheus", "expr": "up{job=\"eureka\"}", "legendFormat": "", "refId": "A" }]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            { "options": { "0": { "color": "red", "index": 1, "text": "HORS LIGNE" }, "1": { "color": "green", "index": 0, "text": "EN LIGNE" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "id": 4,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
       "title": "Housing Service",
       "type": "stat",
       "targets": [{ "datasource": "Prometheus", "expr": "up{job=\"housing-service\"}", "legendFormat": "", "refId": "A" }]
@@ -125,8 +144,8 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
-      "id": 4,
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
       "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
       "title": "Colocation Service",
       "type": "stat",
@@ -144,31 +163,12 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
-      "id": 5,
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "id": 6,
       "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
       "title": "Communication",
       "type": "stat",
       "targets": [{ "datasource": "Prometheus", "expr": "up{job=\"communication-service\"}", "legendFormat": "", "refId": "A" }]
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "mappings": [
-            { "options": { "0": { "color": "red", "index": 1, "text": "HORS LIGNE" }, "1": { "color": "green", "index": 0, "text": "EN LIGNE" } }, "type": "value" }
-          ],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
-        },
-        "overrides": []
-      },
-      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
-      "id": 6,
-      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "title": "Review Service",
-      "type": "stat",
-      "targets": [{ "datasource": "Prometheus", "expr": "up{job=\"review-service\"}", "legendFormat": "", "refId": "A" }]
     },
     {
       "collapsed": false,
@@ -339,7 +339,7 @@
       "title": "Taux d'erreurs HTTP 5xx (Gateway)",
       "type": "gauge",
       "targets": [
-        { "datasource": "Prometheus", "expr": "100 * sum(rate(http_server_requests_seconds_count{job=\"gateway\", status=~\"5..\"}[5m])) / sum(rate(http_server_requests_seconds_count{job=\"gateway\"}[5m]))", "legendFormat": "% erreurs", "refId": "A" }
+        { "datasource": "Prometheus", "expr": "100 * (sum(rate(http_server_requests_seconds_count{job=\"gateway\", status=~\"5..\"}[5m])) or vector(0)) / clamp_min(sum(rate(http_server_requests_seconds_count{job=\"gateway\"}[5m])) or vector(1), 0.0001)", "legendFormat": "% erreurs", "refId": "A" }
       ]
     }
   ],

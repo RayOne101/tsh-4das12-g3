@@ -27,6 +27,8 @@ Conteneurs attendus :
 - `tsh-kafka` (Port 9092)
 - `tsh-kafka-ui` (Port 8088)
 - `tsh-zipkin` (Port 9411)
+- `tsh-prometheus` (Port 9090)
+- `tsh-grafana` (Port 3000)
 
 ### Etape 2 : Eureka Discovery Server
 Dans votre IDE (ou en ligne de commande) :
@@ -82,7 +84,18 @@ npm run dev
    - Montrez le message avec sa cle, sa partition et son horodatage.
    - Expliquez que cette architecture decouple completement le service User des autres services (comme Communication ou Notification) sans ralentir la requete de l'utilisateur.
 
-### Scenario 4 : Tracabilite distribuee (Zipkin)
+### Scenario 4 : Tableau de bord central (Grafana)
+1. Ouvrez Grafana : `http://localhost:3000` (identifiants : `admin` / `admin`).
+2. Le dashboard "TSH — Vue d'ensemble des Microservices" s'ouvre automatiquement.
+3. Montrez au jury :
+   - La barre d'etat en haut : chaque microservice affiche "EN LIGNE" (vert) ou "HORS LIGNE" (rouge).
+   - Le graphe de requetes HTTP du service User en temps reel apres une modification de profil.
+   - Le graphe de latence (p95) qui monte pendant le televersement d'une photo vers MinIO.
+   - L'utilisation memoire JVM et le pool de connexions HikariCP a la base de donnees.
+4. Expliquez au jury que Grafana rassemble toutes les metriques de tous les microservices : quand vos camarades deployeront leurs services, leurs courbes apparaitront automatiquement.
+5. Utilisez les liens rapides en haut du dashboard pour naviguer vers Zipkin, Kafka UI ou Eureka.
+
+### Scenario 5 : Tracabilite distribuee (Zipkin)
 1. Ouvrez l'interface Zipkin : `http://localhost:9411`.
 2. Cliquez sur "Run Query".
 3. Selectionnez la trace recente correspondant a la mise a jour du profil.
@@ -106,3 +119,6 @@ npm run dev
 
 ### Q4 : Que se passe-t-il si Kafka est arrete au moment ou un utilisateur met a jour son profil ?
 **Reponse :** Le code du producteur (`UserEventProducer`) est protege par un bloc try/catch avec enregistrement d'un log d'avertissement. La transaction de base de donnees de l'utilisateur se termine avec succes et la reponse HTTP 200 est renvoyee a l'etudiant. La continuite de service est garantie.
+
+### Q5 : A quoi sert Grafana par rapport a Zipkin ? Ce ne sont pas les memes outils ?
+**Reponse :** Non, ils ont des roles complementaires. Zipkin repond a la question "Pourquoi cette requete a pris 800ms ?" en montrant le chemin detaille de chaque requete HTTP (Gateway -> User). Grafana repond a "Comment se porte le systeme en ce moment ?" en affichant les tendances : nombre de requetes par seconde, memoire JVM, connexions a la base de donnees, taux d'erreurs. Prometheus collecte les donnees brutes, Grafana les visualise. Les trois outils forment une stack d'observabilite complete standard en entreprise.

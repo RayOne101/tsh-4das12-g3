@@ -34,6 +34,8 @@ docker compose up -d
 > - Zipkin (Traçabilité distribuée) : http://localhost:9411
 > - Kafka Broker : `localhost:9092`
 > - Kafka UI (Tableau de bord) : http://localhost:8088
+> - **Grafana (Dashboard central)** : http://localhost:3000 (identifiants : `admin` / `admin`)
+> - Prometheus (Métriques brutes) : http://localhost:9090
 
 ---
 

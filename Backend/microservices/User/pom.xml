@@ -64,7 +64,7 @@
             <version>${springdoc.version}</version>
         </dependency>
 
-        <!-- Spring Boot Actuator & Tracing avec Zipkin -->
+        <!-- Spring Boot Actuator, Tracing (Zipkin) et Metriques (Prometheus/Grafana) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
@@ -76,6 +76,11 @@
         <dependency>
             <groupId>io.zipkin.reporter2</groupId>
             <artifactId>zipkin-reporter-brave</artifactId>
+        </dependency>
+        <!-- Exporte les metriques Spring Boot vers Prometheus (scrappe par Grafana) -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
 
         <!-- Spring Kafka (Bus de messages asynchrone) -->

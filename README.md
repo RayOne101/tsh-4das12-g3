@@ -116,6 +116,8 @@ Toutes les briques du projet sont centralisées et accessibles via des ports dé
 | 🟢 | **PgWeb (Keycloak DB)**| `8086` | [http://localhost:8086](http://localhost:8086) | Interface de consultation de la base `keycloak` | Déjà connecté |
 | 🟢 | **Apache Kafka** | `9092` | `localhost:9092` | Broker d'événements asynchrones (mode KRaft) | — |
 | 🟢 | **Kafka UI** | `8088` | [http://localhost:8088](http://localhost:8088) | Tableau de bord web Kafka (visualisation des topics et messages) | — |
+| 🟢 | **Grafana** | `3000` | [http://localhost:3000](http://localhost:3000) | **Tableau de bord central** : état services, métriques JVM, latence HTTP, BDD | `admin` / `admin` |
+| 🟢 | **Prometheus** | `9090` | [http://localhost:9090](http://localhost:9090) | Collecte des métriques de tous les microservices (source de Grafana) | — |
 | ⚪ | **Housing Service** | `8763` | `http://localhost:8763` | Gestion des annonces immobilières et favoris | — |
 | ⚪ | **Colocation Service**| `8764` | `http://localhost:8764` | Matching de colocataires & profils de vie | — |
 | ⚪ | **Contract Service** | `8765` | `http://localhost:8765` | Baux numériques, PDF et quittances | — |

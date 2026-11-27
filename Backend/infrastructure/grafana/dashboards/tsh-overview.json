@@ -5,55 +5,47 @@
     { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" }
   ],
   "annotations": { "list": [] },
-  "description": "Vue d'ensemble du projet TSH : metriques JVM, HTTP, Kafka et etat des microservices",
+  "description": "Centre de supervision centralise du projet TSH : disponibilite des 10 services, trafic HTTP (RED), latence P95, base de donnees HikariCP, Kafka et JVM.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
   "links": [
-    {
-      "asDropdown": false,
-      "icon": "external link",
-      "includeVars": false,
-      "keepTime": false,
-      "tags": [],
-      "targetBlank": true,
-      "title": "Zipkin (Traces)",
-      "tooltip": "Ouvrir Zipkin",
-      "type": "link",
-      "url": "http://localhost:9411"
-    },
-    {
-      "asDropdown": false,
-      "icon": "external link",
-      "includeVars": false,
-      "keepTime": false,
-      "tags": [],
-      "targetBlank": true,
-      "title": "Kafka UI",
-      "tooltip": "Ouvrir Kafka UI",
-      "type": "link",
-      "url": "http://localhost:8088"
-    },
-    {
-      "asDropdown": false,
-      "icon": "external link",
-      "includeVars": false,
-      "keepTime": false,
-      "tags": [],
-      "targetBlank": true,
-      "title": "Eureka",
-      "tooltip": "Ouvrir Eureka",
-      "type": "link",
-      "url": "http://localhost:8761"
-    }
+    { "icon": "doc", "targetBlank": true, "title": "Swagger UI (Gateway)", "tooltip": "Documentation API centralisee", "type": "link", "url": "http://localhost:8083/swagger-ui.html" },
+    { "icon": "cloud", "targetBlank": true, "title": "Eureka (8761)", "tooltip": "Annuaire des microservices", "type": "link", "url": "http://localhost:8761" },
+    { "icon": "bolt", "targetBlank": true, "title": "Zipkin (9411)", "tooltip": "Traces distribuees HTTP", "type": "link", "url": "http://localhost:9411" },
+    { "icon": "exchange", "targetBlank": true, "title": "Kafka UI (8088)", "tooltip": "Topics et messages Kafka", "type": "link", "url": "http://localhost:8088" },
+    { "icon": "database", "targetBlank": true, "title": "MinIO (9001)", "tooltip": "Stockage S3 avatars et medias", "type": "link", "url": "http://localhost:9001" },
+    { "icon": "database", "targetBlank": true, "title": "PgWeb (8082)", "tooltip": "Base de donnees PostgreSQL", "type": "link", "url": "http://localhost:8082" },
+    { "icon": "lock", "targetBlank": true, "title": "Keycloak (8085)", "tooltip": "Gestion des identites IAM", "type": "link", "url": "http://localhost:8085" }
   ],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": true, "text": "user-service", "value": "user-service" },
+        "datasource": { "type": "prometheus", "uid": "Prometheus" },
+        "definition": "label_values(up, job)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Service",
+        "multi": false,
+        "name": "service",
+        "options": [],
+        "query": { "query": "label_values(up, job)", "refId": "StandardVariableQuery" },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
   "panels": [
     {
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
       "id": 100,
-      "title": "Etat des Microservices",
+      "title": "Architecture TSH — Disponibilite des Services",
       "type": "row"
     },
     {
@@ -61,295 +53,475 @@
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
-          "mappings": [
-            { "options": { "0": { "color": "red", "index": 1, "text": "HORS LIGNE" }, "1": { "color": "green", "index": 0, "text": "EN LIGNE" } }, "type": "value" }
-          ],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+          "decimals": 0,
+          "mappings": [],
+          "max": 10,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "green", "value": 3 }
+            ]
+          },
+          "unit": "short"
         },
         "overrides": []
       },
       "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
       "id": 1,
-      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "title": "User Service",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value_and_name"
+      },
+      "title": "Services Actifs (/10)",
       "type": "stat",
-      "targets": [{ "datasource": "Prometheus", "expr": "up{job=\"user-service\"}", "legendFormat": "", "refId": "A" }]
+      "targets": [{ "datasource": "Prometheus", "expr": "count(up == 1) or vector(0)", "refId": "A" }]
     },
     {
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
-          "mappings": [
-            { "options": { "0": { "color": "red", "index": 1, "text": "HORS LIGNE" }, "1": { "color": "green", "index": 0, "text": "EN LIGNE" } }, "type": "value" }
-          ],
+          "mappings": [{ "options": { "0": { "color": "red", "text": "OFF" }, "1": { "color": "green", "text": "UP" } }, "type": "value" }],
           "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "gridPos": { "h": 2, "w": 4, "x": 4, "y": 1 },
       "id": 2,
-      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "title": "Gateway",
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value_and_name" },
+      "title": "Eureka (8761)",
       "type": "stat",
-      "targets": [{ "datasource": "Prometheus", "expr": "up{job=\"gateway\"}", "legendFormat": "", "refId": "A" }]
+      "targets": [{ "datasource": "Prometheus", "expr": "up{job=\"eureka\"}", "refId": "A" }]
     },
     {
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
-          "mappings": [
-            { "options": { "0": { "color": "red", "index": 1, "text": "HORS LIGNE" }, "1": { "color": "green", "index": 0, "text": "EN LIGNE" } }, "type": "value" }
-          ],
+          "mappings": [{ "options": { "0": { "color": "red", "text": "OFF" }, "1": { "color": "green", "text": "UP" } }, "type": "value" }],
           "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "gridPos": { "h": 2, "w": 4, "x": 8, "y": 1 },
       "id": 3,
-      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "title": "Eureka Server",
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value_and_name" },
+      "title": "Gateway (8083)",
       "type": "stat",
-      "targets": [{ "datasource": "Prometheus", "expr": "up{job=\"eureka\"}", "legendFormat": "", "refId": "A" }]
+      "targets": [{ "datasource": "Prometheus", "expr": "up{job=\"gateway\"}", "refId": "A" }]
     },
     {
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
-          "mappings": [
-            { "options": { "0": { "color": "red", "index": 1, "text": "HORS LIGNE" }, "1": { "color": "green", "index": 0, "text": "EN LIGNE" } }, "type": "value" }
-          ],
+          "mappings": [{ "options": { "0": { "color": "red", "text": "OFF" }, "1": { "color": "green", "text": "UP" } }, "type": "value" }],
           "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "gridPos": { "h": 2, "w": 4, "x": 12, "y": 1 },
       "id": 4,
-      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "title": "Housing Service",
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value_and_name" },
+      "title": "User (8762)",
       "type": "stat",
-      "targets": [{ "datasource": "Prometheus", "expr": "up{job=\"housing-service\"}", "legendFormat": "", "refId": "A" }]
+      "targets": [{ "datasource": "Prometheus", "expr": "up{job=\"user-service\"}", "refId": "A" }]
     },
     {
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
-          "mappings": [
-            { "options": { "0": { "color": "red", "index": 1, "text": "HORS LIGNE" }, "1": { "color": "green", "index": 0, "text": "EN LIGNE" } }, "type": "value" }
-          ],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+          "mappings": [{ "options": { "0": { "color": "semi-dark-red", "text": "OFF" }, "1": { "color": "green", "text": "UP" } }, "type": "value" }],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "semi-dark-red", "value": null }, { "color": "green", "value": 1 }] }
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "gridPos": { "h": 2, "w": 4, "x": 16, "y": 1 },
       "id": 5,
-      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "title": "Colocation Service",
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value_and_name" },
+      "title": "Housing (8763)",
       "type": "stat",
-      "targets": [{ "datasource": "Prometheus", "expr": "up{job=\"colocation-service\"}", "legendFormat": "", "refId": "A" }]
+      "targets": [{ "datasource": "Prometheus", "expr": "up{job=\"housing-service\"}", "refId": "A" }]
     },
     {
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
-          "mappings": [
-            { "options": { "0": { "color": "red", "index": 1, "text": "HORS LIGNE" }, "1": { "color": "green", "index": 0, "text": "EN LIGNE" } }, "type": "value" }
-          ],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+          "mappings": [{ "options": { "0": { "color": "semi-dark-red", "text": "OFF" }, "1": { "color": "green", "text": "UP" } }, "type": "value" }],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "semi-dark-red", "value": null }, { "color": "green", "value": 1 }] }
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "gridPos": { "h": 2, "w": 4, "x": 20, "y": 1 },
       "id": 6,
-      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "title": "Communication",
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value_and_name" },
+      "title": "Colocation (8764)",
       "type": "stat",
-      "targets": [{ "datasource": "Prometheus", "expr": "up{job=\"communication-service\"}", "legendFormat": "", "refId": "A" }]
+      "targets": [{ "datasource": "Prometheus", "expr": "up{job=\"colocation-service\"}", "refId": "A" }]
     },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [{ "options": { "0": { "color": "semi-dark-red", "text": "OFF" }, "1": { "color": "green", "text": "UP" } }, "type": "value" }],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "semi-dark-red", "value": null }, { "color": "green", "value": 1 }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 2, "w": 4, "x": 4, "y": 3 },
+      "id": 7,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value_and_name" },
+      "title": "Contract (8765)",
+      "type": "stat",
+      "targets": [{ "datasource": "Prometheus", "expr": "up{job=\"contract-service\"}", "refId": "A" }]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [{ "options": { "0": { "color": "semi-dark-red", "text": "OFF" }, "1": { "color": "green", "text": "UP" } }, "type": "value" }],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "semi-dark-red", "value": null }, { "color": "green", "value": 1 }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 2, "w": 4, "x": 8, "y": 3 },
+      "id": 8,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value_and_name" },
+      "title": "Communication (8766)",
+      "type": "stat",
+      "targets": [{ "datasource": "Prometheus", "expr": "up{job=\"communication-service\"}", "refId": "A" }]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [{ "options": { "0": { "color": "semi-dark-red", "text": "OFF" }, "1": { "color": "green", "text": "UP" } }, "type": "value" }],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "semi-dark-red", "value": null }, { "color": "green", "value": 1 }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 2, "w": 4, "x": 12, "y": 3 },
+      "id": 9,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value_and_name" },
+      "title": "Review (8767)",
+      "type": "stat",
+      "targets": [{ "datasource": "Prometheus", "expr": "up{job=\"review-service\"}", "refId": "A" }]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [{ "options": { "0": { "color": "semi-dark-red", "text": "OFF" }, "1": { "color": "green", "text": "UP" } }, "type": "value" }],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "semi-dark-red", "value": null }, { "color": "green", "value": 1 }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 2, "w": 4, "x": 16, "y": 3 },
+      "id": 10,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value_and_name" },
+      "title": "Marketplace (8768)",
+      "type": "stat",
+      "targets": [{ "datasource": "Prometheus", "expr": "up{job=\"marketplace-service\"}", "refId": "A" }]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [{ "options": { "0": { "color": "semi-dark-red", "text": "OFF" }, "1": { "color": "green", "text": "UP" } }, "type": "value" }],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "semi-dark-red", "value": null }, { "color": "green", "value": 1 }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 2, "w": 4, "x": 20, "y": 3 },
+      "id": 11,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "value_and_name" },
+      "title": "Transport (8769)",
+      "type": "stat",
+      "targets": [{ "datasource": "Prometheus", "expr": "up{job=\"transport-service\"}", "refId": "A" }]
+    },
+
     {
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
       "id": 101,
-      "title": "Service User — Metriques HTTP",
+      "title": "Indicateurs Cles (KPI) — Service : $service",
       "type": "row"
     },
     {
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "req/s", "axisPlacement": "auto", "fillOpacity": 15, "lineWidth": 2 },
-          "unit": "reqps"
-        },
-        "overrides": []
-      },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
-      "id": 10,
-      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "title": "Requetes HTTP par endpoint (User Service)",
-      "type": "timeseries",
-      "targets": [
-        {
-          "datasource": "Prometheus",
-          "expr": "rate(http_server_requests_seconds_count{job=\"user-service\"}[1m])",
-          "legendFormat": "{{method}} {{uri}} - {{status}}",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "secondes", "axisPlacement": "auto", "fillOpacity": 10, "lineWidth": 2 },
+          "color": { "mode": "fixed", "fixedColor": "blue" },
           "unit": "s"
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
-      "id": 11,
-      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "title": "Latence HTTP p95 (User Service)",
-      "type": "timeseries",
-      "targets": [
-        {
-          "datasource": "Prometheus",
-          "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{job=\"user-service\"}[1m]))",
-          "legendFormat": "p95 {{uri}}",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
-      "id": 102,
-      "title": "JVM — Memoire et Threads (User Service)",
-      "type": "row"
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "fillOpacity": 20, "lineWidth": 2 },
-          "unit": "bytes",
-          "min": 0
-        },
-        "overrides": []
-      },
-      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 15 },
+      "gridPos": { "h": 3, "w": 4, "x": 0, "y": 6 },
       "id": 20,
-      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi" } },
-      "title": "Memoire JVM (Heap)",
-      "type": "timeseries",
-      "targets": [
-        { "datasource": "Prometheus", "expr": "jvm_memory_used_bytes{job=\"user-service\", area=\"heap\"}", "legendFormat": "Utilise - {{id}}", "refId": "A" },
-        { "datasource": "Prometheus", "expr": "jvm_memory_max_bytes{job=\"user-service\", area=\"heap\"}", "legendFormat": "Max - {{id}}", "refId": "B" }
-      ]
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "fillOpacity": 20, "lineWidth": 2 },
-          "unit": "short",
-          "min": 0
-        },
-        "overrides": []
-      },
-      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 15 },
-      "id": 21,
-      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi" } },
-      "title": "Threads JVM",
-      "type": "timeseries",
-      "targets": [
-        { "datasource": "Prometheus", "expr": "jvm_threads_live_threads{job=\"user-service\"}", "legendFormat": "Threads actifs", "refId": "A" },
-        { "datasource": "Prometheus", "expr": "jvm_threads_daemon_threads{job=\"user-service\"}", "legendFormat": "Threads daemon", "refId": "B" }
-      ]
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "fillOpacity": 20, "lineWidth": 2 },
-          "unit": "short",
-          "min": 0
-        },
-        "overrides": []
-      },
-      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 15 },
-      "id": 22,
-      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi" } },
-      "title": "Pool de connexions BDD (HikariCP)",
-      "type": "timeseries",
-      "targets": [
-        { "datasource": "Prometheus", "expr": "hikaricp_connections_active{job=\"user-service\"}", "legendFormat": "Connexions actives", "refId": "A" },
-        { "datasource": "Prometheus", "expr": "hikaricp_connections_idle{job=\"user-service\"}", "legendFormat": "Connexions inactives", "refId": "B" },
-        { "datasource": "Prometheus", "expr": "hikaricp_connections_max{job=\"user-service\"}", "legendFormat": "Max connexions", "refId": "C" }
-      ]
-    },
-    {
-      "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 },
-      "id": 103,
-      "title": "Gateway — Trafic global",
-      "type": "row"
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "fillOpacity": 15, "lineWidth": 2 },
-          "unit": "reqps"
-        },
-        "overrides": []
-      },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 23 },
-      "id": 30,
-      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "title": "Requetes passant par la Gateway",
-      "type": "timeseries",
-      "targets": [
-        { "datasource": "Prometheus", "expr": "rate(http_server_requests_seconds_count{job=\"gateway\"}[1m])", "legendFormat": "{{method}} {{uri}} {{status}}", "refId": "A" }
-      ]
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "title": "Uptime",
+      "type": "stat",
+      "targets": [{ "datasource": "Prometheus", "expr": "process_uptime_seconds{job=\"$service\"}", "refId": "A" }]
     },
     {
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
-          "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 10 }, { "color": "red", "value": 50 }] },
+          "decimals": 1,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 70 }, { "color": "red", "value": 90 }] },
           "unit": "percent"
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 23 },
-      "id": 31,
-      "options": { "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showThresholdLabels": false, "showThresholdMarkers": true },
-      "title": "Taux d'erreurs HTTP 5xx (Gateway)",
-      "type": "gauge",
+      "gridPos": { "h": 3, "w": 4, "x": 4, "y": 6 },
+      "id": 21,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "title": "CPU Process",
+      "type": "stat",
+      "targets": [{ "datasource": "Prometheus", "expr": "process_cpu_usage{job=\"$service\"} * 100", "refId": "A" }]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 1,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 75 }, { "color": "red", "value": 90 }] },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 3, "w": 4, "x": 8, "y": 6 },
+      "id": 22,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "title": "Memoire JVM Heap",
+      "type": "stat",
+      "targets": [{ "datasource": "Prometheus", "expr": "100 * sum(jvm_memory_used_bytes{job=\"$service\", area=\"heap\"}) / sum(jvm_memory_max_bytes{job=\"$service\", area=\"heap\"})", "refId": "A" }]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "purple" },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 3, "w": 4, "x": 12, "y": 6 },
+      "id": 23,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "title": "Threads JVM Actifs",
+      "type": "stat",
+      "targets": [{ "datasource": "Prometheus", "expr": "jvm_threads_live_threads{job=\"$service\"}", "refId": "A" }]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "blue" },
+          "decimals": 1,
+          "unit": "reqpm"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 3, "w": 4, "x": 16, "y": 6 },
+      "id": 24,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "title": "Debit API (req/min)",
+      "type": "stat",
+      "targets": [{ "datasource": "Prometheus", "expr": "(sum(rate(http_server_requests_seconds_count{job=\"$service\", uri!~\"/actuator.*\"}[1m])) * 60) or vector(0)", "refId": "A" }]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 2,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 5 }] },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 3, "w": 4, "x": 20, "y": 6 },
+      "id": 25,
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "title": "Taux Erreurs 5xx",
+      "type": "stat",
+      "targets": [{ "datasource": "Prometheus", "expr": "100 * (sum(rate(http_server_requests_seconds_count{job=\"$service\", status=~\"5..\"}[5m])) or vector(0)) / clamp_min(sum(rate(http_server_requests_seconds_count{job=\"$service\"}[5m])) or vector(1), 0.0001)", "refId": "A" }]
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "id": 102,
+      "title": "Trafic HTTP et Latence (Methode RED) — $service",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "axisCenteredZero": false, "axisLabel": "req/s", "fillOpacity": 12, "lineInterpolation": "smooth", "lineWidth": 2, "showPoints": "auto" },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "id": 30,
+      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "title": "Requetes HTTP par Endpoint (hors Actuator)",
+      "type": "timeseries",
       "targets": [
-        { "datasource": "Prometheus", "expr": "100 * (sum(rate(http_server_requests_seconds_count{job=\"gateway\", status=~\"5..\"}[5m])) or vector(0)) / clamp_min(sum(rate(http_server_requests_seconds_count{job=\"gateway\"}[5m])) or vector(1), 0.0001)", "legendFormat": "% erreurs", "refId": "A" }
+        { "datasource": "Prometheus", "expr": "sum by (method, uri, status) (rate(http_server_requests_seconds_count{job=\"$service\", uri!~\"/actuator.*\"}[1m]))", "legendFormat": "{{method}} {{uri}} [{{status}}]", "refId": "A" }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "axisCenteredZero": false, "axisLabel": "duree", "fillOpacity": 10, "lineInterpolation": "smooth", "lineWidth": 2, "showPoints": "auto" },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+      "id": 31,
+      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "title": "Latence HTTP P95 et Moyenne",
+      "type": "timeseries",
+      "targets": [
+        { "datasource": "Prometheus", "expr": "histogram_quantile(0.95, sum by (le, uri) (rate(http_server_requests_seconds_bucket{job=\"$service\", uri!~\"/actuator.*\"}[1m])))", "legendFormat": "P95 {{uri}}", "refId": "A" },
+        { "datasource": "Prometheus", "expr": "sum by (uri) (rate(http_server_requests_seconds_sum{job=\"$service\", uri!~\"/actuator.*\"}[1m])) / clamp_min(sum by (uri) (rate(http_server_requests_seconds_count{job=\"$service\", uri!~\"/actuator.*\"}[1m])), 0.0001)", "legendFormat": "Moy {{uri}}", "refId": "B" }
+      ]
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "id": 103,
+      "title": "Base de Donnees (PostgreSQL) et Evenements Kafka",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "fillOpacity": 15, "lineInterpolation": "smooth", "lineWidth": 2 },
+          "min": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 19 },
+      "id": 40,
+      "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi" } },
+      "title": "Pool de Connexions PostgreSQL (HikariCP)",
+      "type": "timeseries",
+      "targets": [
+        { "datasource": "Prometheus", "expr": "hikaricp_connections_active{job=\"$service\"}", "legendFormat": "Actives", "refId": "A" },
+        { "datasource": "Prometheus", "expr": "hikaricp_connections_idle{job=\"$service\"}", "legendFormat": "Inactives", "refId": "B" },
+        { "datasource": "Prometheus", "expr": "hikaricp_connections_pending{job=\"$service\"}", "legendFormat": "En attente", "refId": "C" },
+        { "datasource": "Prometheus", "expr": "hikaricp_connections_max{job=\"$service\"}", "legendFormat": "Max Pool", "refId": "D" }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "fillOpacity": 15, "lineInterpolation": "smooth", "lineWidth": 2 },
+          "min": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 19 },
+      "id": 41,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi" } },
+      "title": "Apache Kafka — Messages Envoyes et Consommes",
+      "type": "timeseries",
+      "targets": [
+        { "datasource": "Prometheus", "expr": "sum(kafka_producer_record_send_total{job=\"$service\"}) or vector(0)", "legendFormat": "Total messages publies (Producer)", "refId": "A" },
+        { "datasource": "Prometheus", "expr": "sum(spring_kafka_listener_seconds_count{job=\"$service\"}) or vector(0)", "legendFormat": "Total messages recus (Consumer)", "refId": "B" }
+      ]
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 },
+      "id": 104,
+      "title": "Ressources Systeme & JVM — $service",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "fillOpacity": 15, "lineInterpolation": "smooth", "lineWidth": 2 },
+          "min": 0,
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 27 },
+      "id": 50,
+      "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi" } },
+      "title": "Memoire JVM Heap (Utilisee vs Max)",
+      "type": "timeseries",
+      "targets": [
+        { "datasource": "Prometheus", "expr": "sum(jvm_memory_used_bytes{job=\"$service\", area=\"heap\"})", "legendFormat": "Heap Utilisee", "refId": "A" },
+        { "datasource": "Prometheus", "expr": "sum(jvm_memory_max_bytes{job=\"$service\", area=\"heap\"})", "legendFormat": "Heap Max", "refId": "B" }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "fillOpacity": 12, "lineInterpolation": "smooth", "lineWidth": 2 },
+          "max": 100,
+          "min": 0,
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 27 },
+      "id": 51,
+      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi" } },
+      "title": "Utilisation CPU (Process vs Systeme)",
+      "type": "timeseries",
+      "targets": [
+        { "datasource": "Prometheus", "expr": "process_cpu_usage{job=\"$service\"} * 100", "legendFormat": "CPU Application (%)", "refId": "A" },
+        { "datasource": "Prometheus", "expr": "system_cpu_usage{job=\"$service\"} * 100", "legendFormat": "CPU Systeme (%)", "refId": "B" }
       ]
     }
   ],
-  "refresh": "30s",
+  "refresh": "15s",
   "schemaVersion": 38,
-  "tags": ["tsh", "microservices", "spring-boot"],
+  "tags": ["tsh", "microservices", "spring-boot", "observability"],
   "time": { "from": "now-30m", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
-  "title": "TSH — Vue d'ensemble des Microservices",
+  "title": "TSH — Centre de Supervision Microservices",
   "uid": "tsh-overview",
-  "version": 1
+  "version": 2
 }

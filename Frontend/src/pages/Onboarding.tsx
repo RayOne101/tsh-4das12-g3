@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -9,6 +9,7 @@ import {
   Lock,
   Mail,
   Phone,
+  Upload,
   User,
 } from 'lucide-react'
 import { Brand } from '@/components/Brand'
@@ -20,10 +21,12 @@ import { USE_MOCKS, registerProfile } from '@/lib/api'
 
 export function Onboarding() {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, updateSessionImage } = useAuth()
   const { toast } = useToast()
   const [step, setStep] = useState(1)
   const [role, setRole] = useState<Role>('student')
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState({
     nom: '',
     email: '',
@@ -32,6 +35,22 @@ export function Onboarding() {
     confirmPassword: '',
   })
   const [consent, setConsent] = useState(false)
+
+  const handleAvatarSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const allowed = ['image/jpeg', 'image/png', 'image/webp']
+    if (!allowed.includes(file.type)) {
+      toast('Format non supporté (JPEG, PNG ou WebP uniquement)', 'error')
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast('Image trop lourde (2 Mo maximum)', 'error')
+      return
+    }
+    const localUrl = URL.createObjectURL(file)
+    setAvatarPreview(localUrl)
+  }
 
   const set = (key: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [key]: value }))
@@ -63,9 +82,14 @@ export function Onboarding() {
       }
     }
 
+    if (avatarPreview) {
+      updateSessionImage(avatarPreview)
+    }
+
     login(role, {
       name: form.nom || 'Étudiant TSH',
       email: form.email || 'etudiant@tsh.tn',
+      image: avatarPreview || undefined,
     })
     toast(`Bienvenue sur TSH, ${form.nom.split(' ')[0] || ''} ! Ton compte est prêt.`, 'success')
     navigate('/logements')
@@ -190,6 +214,40 @@ export function Onboarding() {
                 </h2>
 
                 <div className="mt-5 grid gap-3.5 sm:grid-cols-2">
+                  {/* Photo de profil (optionnel) */}
+                  <div className="flex items-center gap-4 rounded-2xl border border-ink/[0.08] bg-white p-3.5 sm:col-span-2">
+                    <div className="relative size-14 shrink-0 overflow-hidden rounded-full border border-ink/10 bg-cream">
+                      {avatarPreview ? (
+                        <img src={avatarPreview} alt="Apercu" className="size-full object-cover" />
+                      ) : (
+                        <div className="grid size-full place-items-center text-ink-soft">
+                          <User className="size-6" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-semibold text-ink">
+                        Photo de profil <span className="font-normal text-ink-soft">(optionnel)</span>
+                      </p>
+                      <p className="text-[11px] text-ink-soft">JPG, PNG ou WebP (max 2 Mo)</p>
+                    </div>
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleAvatarSelect}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-ink/15 bg-white px-3 py-1.5 text-[11.5px] font-medium text-ink transition hover:bg-cream"
+                    >
+                      <Upload className="size-3 text-ink-soft" />
+                      {avatarPreview ? 'Changer' : 'Ajouter'}
+                    </button>
+                  </div>
+
                   <div className="sm:col-span-2">
                     <label className="field-label" htmlFor="nom">
                       Nom complet

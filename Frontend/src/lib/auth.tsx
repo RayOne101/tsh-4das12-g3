@@ -38,6 +38,8 @@ interface AuthContextValue {
   logout: () => void
   switchRole: (role: Role) => void
   expire: () => void
+  /** Met a jour l'image de profil dans la session et le stockage local. */
+  updateSessionImage: (imageUrl: string) => void
 }
 
 const STORAGE_KEY = 'tsh.demo.session'
@@ -99,6 +101,13 @@ function sessionFromTokens(tokens: Tokens): Session {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [avatarOverride, setAvatarOverride] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('tsh.user.avatar')
+    } catch {
+      return null
+    }
+  })
   const [demoSession, setDemoSession] = useState<Session | null>(() =>
     AUTH_ENABLED ? null : readSession(),
   )
@@ -159,7 +168,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [],
   )
 
+  const updateSessionImage = useCallback((imageUrl: string) => {
+    try {
+      localStorage.setItem('tsh.user.avatar', imageUrl)
+    } catch {
+      // stockage local indisponible
+    }
+    setAvatarOverride(imageUrl)
+    setDemoSession((current) => (current ? { ...current, image: imageUrl } : current))
+  }, [])
+
   const logout = useCallback(() => {
+    try {
+      localStorage.removeItem('tsh.user.avatar')
+    } catch {
+      // stockage local indisponible
+    }
+    setAvatarOverride(null)
     if (AUTH_ENABLED) {
       setTokens(null)
       storeTokens(null)
@@ -193,10 +218,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
   }, [])
 
-  const session = useMemo(
-    () => (tokens ? sessionFromTokens(tokens) : demoSession),
-    [tokens, demoSession],
-  )
+  const session = useMemo(() => {
+    const base = tokens ? sessionFromTokens(tokens) : demoSession
+    if (!base) return null
+    if (avatarOverride) return { ...base, image: avatarOverride }
+    return base
+  }, [tokens, demoSession, avatarOverride])
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -208,8 +235,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logout,
       switchRole,
       expire,
+      updateSessionImage,
     }),
-    [session, login, signIn, logout, switchRole, expire],
+    [session, login, signIn, logout, switchRole, expire, updateSessionImage],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
